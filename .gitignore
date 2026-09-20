@@ -1,0 +1,113 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# flutter / dart
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/.packages
+apps/mobile/.pub-cache/
+apps/mobile/.pub/
+apps/mobile/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+
+# postgres
+infra/data/
+
+# uploads (runtime)
+apps/api/uploads/
+apps/api/uploads.bak*/
+apps/api/uploads.bak.*/
+
+# runtime-generated PDF reports and preview test outputs
+apps/api/storage/
+apps/api/test-output/
+
+# mobile debug / APK verification leftovers
+apps/mobile/tmp_apk_*/
+
+# Windows-only startup scripts with hardcoded absolute paths
+apps/api/start-api.bat
+apps/web/start-web.bat
+
+# stray desktop notes
+apps/instructions.txt
+
+# local dev artefacts (test cookies, scraped HTML, photos.out, etc.)
+.cookies.txt
+.dash.html
+.tmp-cookies.txt
+.tmp-dash.html
+photos.out
+tc.out
+*.out
+# one-off debug scripts and their backups
+.tmp-*.js
+.tmp-*.js.bak
+.tmp-*.js.bak2
+.smoketest-*.bak
+.smoketest-*.bak2
+.qc-api.log.bak
+.qc-api.log.err
+*.bak
+*.bak2
+*.err
+# helper scripts dropped at the repo root for one-off edits
+_tmp_*
+_*.py
+
+# ad-hoc debugging / one-off scripts that landed in apps/api/ during
+# dev sessions — not part of the project source. Names match the
+# `qc-probe-*.js`, `qc-check-*.js`, `qc-clear-*.js`, `qc-del-*.js`,
+# `qc-seed-*.js`, `qc-verify-*.js`, `qc-wipe-*.js`, `qc-firm-*.js`,
+# `qc-backup-*.js`, `qc-db-*.js`, `qc-aql-schema.js`, `qc-cat-schema.js`,
+# `preview-detail-report.cjs`, `start-api.bat` patterns.
+apps/api/qc-*.js
+apps/api/qc-*.py
+apps/api/preview-detail-report.cjs
+apps/api/start-api.bat
+apps/api/db.js
+
+# debug screenshots / generated PDFs / page captures that landed in
+# apps/api/ root during PDF report development
+apps/api/cover-summary.png
+apps/api/detail-fresh.pdf
+apps/api/detail-rich.pdf
+apps/api/detail-old-p*.png
+apps/api/detail-p*.png
+apps/api/page*-*.png
+apps/api/page*-*.jpg
+
+# OS / editor noise
+Thumbs.db
+ehthumbs.db
+desktop.ini

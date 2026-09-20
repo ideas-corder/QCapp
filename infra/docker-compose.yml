@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: qc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-qc_inspector}
+      POSTGRES_USER: ${POSTGRES_USER:-qc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qc_password_change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18 requires mounting at /var/lib/postgresql (not /data) due to
+      # pg_upgrade --link compatibility — see docker-library/postgres#37
+      - qc_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qc} -d ${POSTGRES_DB:-qc_inspector}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: qc-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@qc.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "5050:80"
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  qc_pgdata:

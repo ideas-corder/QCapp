@@ -1,0 +1,27 @@
+{
+  "name": "qc-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Quality Assurance & Inspection Platform — API (NestJS), Web Admin (Next.js), Mobile (Flutter)",
+  "scripts": {
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f",
+    "api:dev": "pnpm --filter @qc/api start:dev",
+    "api:build": "pnpm --filter @qc/api build",
+    "api:migrate": "pnpm --filter @qc/api migration:run",
+    "api:seed": "pnpm --filter @qc/api seed",
+    "web:dev": "pnpm --filter @qc/web dev",
+    "web:build": "pnpm --filter @qc/web build",
+    "mobile:pub": "cd apps/mobile && flutter pub get",
+    "mobile:run": "cd apps/mobile && flutter run",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "5.5.4"
+  }
+}

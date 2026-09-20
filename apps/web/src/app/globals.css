@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 250 250 249;
+  --foreground: 23 23 23;
+
+  /* Theme tokens — overridden at runtime by ThemeProvider from localStorage.
+     Default values match the original Tailwind palette so the app looks
+     identical out of the box. Each token has a base + accent (hover) + on
+     (text-on-color) value derived from HSL components.
+
+     The full 50–900 brand scale is defined here so utility classes like
+     `bg-qc-600`, `text-qc-700`, `border-qc-200` etc. resolve to the
+     right shade instead of silently getting dropped by Tailwind. The
+     values are Tailwind's `sky-*` ramp centred on sky-500 = `2 132 199`,
+     which matches the rest of the design system. */
+  --brand: 2 132 199;          /* qc-500 — base brand */
+  --brand-strong: 3 105 161;   /* qc-600 — hover / pressed */
+  --brand-deep: 7 89 133;      /* qc-700 — deep accent */
+  --brand-soft: 224 242 254;   /* qc-100 — hover/panel background tint */
+  --brand-border: 186 230 253; /* qc-200 — subtle outlines on theme elements */
+  --brand-100: 224 242 254;    /* alias of --brand-soft */
+  --brand-300: 125 211 252;    /* sky-300 */
+  --brand-400: 56 189 248;     /* sky-400 */
+  --brand-500: 2 132 199;      /* alias of --brand */
+  --brand-600: 3 105 161;      /* alias of --brand-strong */
+  --brand-700: 7 89 133;       /* alias of --brand-deep */
+  --brand-800: 12 74 110;      /* sky-800 */
+  --brand-900: 8 47 73;        /* sky-900 */
+  --brand-on: 255 255 255;     /* text on brand */
+
+  --sidebar-bg: 15 23 42;       /* slate-900 — dark navy ERP sidebar */
+  --sidebar-border: 30 41 59;   /* slate-800 — sidebar dividers */
+  --sidebar-text: 248 250 252; /* slate-50 */
+  --sidebar-text-muted: 148 163 184; /* slate-400 */
+
+  --accept: 22 163 74;         /* green-600 */
+  --accept-soft: 220 252 231;  /* green-50 */
+  --accept-border: 187 247 208;/* green-200 */
+  --accept-deep: 20 83 45;     /* green-900 */
+
+  --reject: 220 38 38;         /* red-600 */
+  --reject-soft: 254 226 226;  /* red-50 */
+  --reject-border: 252 165 165;/* red-200 */
+  --reject-deep: 127 29 29;    /* red-900 */
+
+  /* StepCard header (new-inspection form). Default is a soft slate tint so
+     the modern-variant card header reads as a distinct band above the white
+     card body. Inspector can re-tint via Theme Settings. The CSS-var triplet
+     form keeps Tailwind alpha modifiers (bg-card/80 etc.) working. */
+  --card: 241 245 249;         /* slate-100 — StepCard header background */
+  --card-border: 226 232 240;  /* slate-200 — StepCard header bottom rule */
+  --card-on: 30 41 59;         /* slate-800 — text on the card header band */
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Thin, branded scrollbar used by self-contained scroll panels
+   (e.g. the New Inspection form's left progress sidebar). The panel
+   keeps its own scrollbar separate from the main page scroll, and this
+   makes that scrollbar visually quiet instead of OS-default chunky. */
+.qc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(214 211 209) transparent; /* stone-300 thumb, transparent track */
+}
+.qc-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.qc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.qc-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(214 211 209); /* stone-300 */
+  border-radius: 9999px;
+}
+.qc-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(168 162 158); /* stone-400 */
+}
