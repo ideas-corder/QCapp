@@ -99,14 +99,22 @@ export class UsersService {
 
   async create(dto: CreateUserDto, caller: Caller): Promise<UserView> {
     this.assertSuperAdmin(caller);
-    const existing = await this.users.findOne({ where: { email: dto.email } });
+    // Normalise email casing on the WRITE side too. `auth.service.ts:
+    // loginStep1` lowercases incoming emails before looking the row
+    // up; if we stored mixed-case here, sign-in would 401 even though
+    // the row exists. RFC 5321 permits mixed-case in the local-part
+    // but in practice almost every consumer treats it as case-insensitive.
+    const normalisedEmail = dto.email.trim().toLowerCase();
+    const existing = await this.users.findOne({
+      where: { email: normalisedEmail },
+    });
     if (existing) throw new ConflictException('Email already in use');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const row = this.users.create({
-      email: dto.email,
+      email: normalisedEmail,
       passwordHash,
-      fullName: dto.fullName,
+      fullName: dto.fullName.trim(),
       role: dto.role ?? 'inspector',
       isActive: dto.isActive ?? true,
       // Force FALSE unless the caller is a super-admin AND explicitly
@@ -133,9 +141,15 @@ export class UsersService {
     const patch: Partial<UserEntity> = {};
     if (dto.fullName !== undefined) patch.fullName = dto.fullName.trim();
     if (dto.email !== undefined && dto.email !== target.email) {
-      const clash = await this.users.findOne({ where: { email: dto.email } });
-      if (clash) throw new ConflictException('Email already in use');
-      patch.email = dto.email.trim();
+      // Same lowercasing rule as create() — see comment there.
+      const normalisedEmail = dto.email.trim().toLowerCase();
+      if (normalisedEmail !== target.email) {
+        const clash = await this.users.findOne({
+          where: { email: normalisedEmail },
+        });
+        if (clash) throw new ConflictException('Email already in use');
+        patch.email = normalisedEmail;
+      }
     }
     if (dto.role !== undefined) patch.role = dto.role;
     if (dto.isActive !== undefined) patch.isActive = dto.isActive;

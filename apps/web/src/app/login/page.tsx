@@ -30,10 +30,20 @@ export default function LoginPage() {
           return;
         }
         await setTokens(r.accessToken, r.refreshToken);
+        // router.refresh() forces the root layout to re-render against
+        // the new cookie. Without it, `cookies().get(ACCESS_COOKIE)`
+        // in layout.tsx still returns `undefined` (stale SSR snapshot)
+        // and the whole `{token ? <Sidebar/> : children}` branch
+        // falls into `children`, leaving the page rendered without
+        // the sidebar / role badge / header. The user then has to
+        // click the URL bar (which triggers a hard navigation) to
+        // see the panel. router.refresh() prevents that.
+        router.refresh();
         router.push(landingPath(r.user));
       } else {
         const r = await apiLoginMfa(mfaToken, totpCode);
         await setTokens(r.accessToken, r.refreshToken);
+        router.refresh();
         router.push(landingPath(r.user));
       }
     } catch (e: any) {
@@ -146,9 +156,11 @@ export default function LoginPage() {
           {loading ? 'Signing in…' : mfaToken ? 'Verify code' : 'Sign in'}
         </button>
 
-        <p className="mt-5 text-xs leading-5 text-stone-600 text-center">
-          Demo: admin@qc.local / Admin@123 (MFA off until enrolled)
-        </p>
+        {process.env.NODE_ENV === 'development' && (
+          <p className="mt-5 text-xs leading-5 text-stone-600 text-center">
+            Demo: admin@qc.local / Admin@123 (MFA off until enrolled)
+          </p>
+        )}
       </form>
     </div>
   );
