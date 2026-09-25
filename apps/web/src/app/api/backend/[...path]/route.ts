@@ -35,7 +35,7 @@ const HOP_BY_HOP = new Set([
   'expect',
 ]);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_BASE = process.env.API_INTERNAL_URL || 'http://backend:3000';
 
 function readCookie(header: string | null, name: string): string | undefined {
   if (!header) return undefined;

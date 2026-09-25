@@ -1,5 +1,5 @@
 // Client-safe API utilities (no next/headers imports).
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API = '/api/backend';
 
 /**
  * Translate an API error body into a short, user-friendly sentence.
