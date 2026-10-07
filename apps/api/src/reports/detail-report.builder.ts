@@ -67,6 +67,13 @@ type EvaluationCheckLike = {
   photoUrls?: string[];
 };
 
+type DebitNoteLike = {
+  answer?: '' | 'YES' | 'NO';
+  comment?: string;
+  photoCount?: number;
+  photoUrls?: string[];
+};
+
 type SignatureLike = {
   role: string;
   label: string;
@@ -140,6 +147,7 @@ type ReportableInspection = {
   defects?: DefectLike[];
   photos?: PhotoLike[];
   evaluationChecks?: EvaluationCheckLike[];
+  debitNote?: DebitNoteLike | null;
   signatures?: SignatureLike[] | null;
   signatureBase64?: string | null;
   inspectorNotes?: string | null;
@@ -235,6 +243,7 @@ export class DetailReportBuilder {
     // following pages. Keep the report data flow explicit so empty
     // photo arrays do not remove the rest of the packet.
     this.newPage(doc);
+    await this.writeDebitNote(doc, inspection);
     this.writeFinalComments(doc, inspection);
     this.writeEvaluationChecks(doc, inspection);
     this.writeDefectLog(doc, inspection);
@@ -399,15 +408,6 @@ export class DetailReportBuilder {
     doc.text('Quality Assurance & Compliance', textX, bandY + 33, { width: w - 260, height: 12, lineBreak: false });
     doc.x = left;
 
-    const result = (i.overallResult || 'PENDING_REVIEW').toUpperCase();
-    const resultLabel = result === 'PASS' ? 'PASS' : result === 'REWORK' ? 'REWORK' : result === 'REJECTED' ? 'REJECTED' : 'HOLD';
-    const badgeW = 42;
-    const badgeH = 22;
-    const badgeX = left + w - badgeW - 12;
-    const badgeY = bandY + (bandH - badgeH) / 2;
-    doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 2).fill(C.green);
-    doc.font(FONT_BOLD).fontSize(14).fillColor('#ffffff');
-    doc.text(resultLabel, badgeX, badgeY + 7, { width: badgeW, align: 'center', height: 22, lineBreak: false });
     doc.x = left;
 
     doc.y = bandY + bandH + 6;
@@ -884,6 +884,145 @@ export class DetailReportBuilder {
     doc.y += rowH + 8;
   }
 
+  // ── section: Debit Note ────────────────────────────────────
+
+  private async writeDebitNote(
+    doc: PDFKit.PDFDocument,
+    i: ReportableInspection,
+  ): Promise<void> {
+    const { left, right } = doc.page.margins;
+    const w = doc.page.width - left - right;
+    const answer = i.debitNote?.answer ?? '';
+    const answerLabel =
+      answer === 'YES' ? 'Yes' : answer === 'NO' ? 'No' : 'Not specified';
+    const comment = (i.debitNote?.comment ?? '').trim();
+    const reason = comment || 'No debit-note reason provided.';
+    // Prefer the related photo rows because they carry the canonical upload
+    // URL. Fall back to the JSONB snapshot so older records still render if
+    // their photo rows have been pruned. De-duplicate URLs present in both.
+    const photoUrls = Array.from(
+      new Set(
+        [
+          ...(i.photos ?? [])
+            .filter((photo) => photo.kind === 'EVAL_DEBIT_NOTE')
+            .map((photo) => photo.url),
+          ...(i.debitNote?.photoUrls ?? []),
+        ].filter((url): url is string => Boolean(url)),
+      ),
+    );
+    const photoCount = Math.max(i.debitNote?.photoCount ?? 0, photoUrls.length);
+
+    doc.font(FONT_REG).fontSize(9);
+    const reasonHeight = doc.heightOfString(reason, {
+      width: w - 28,
+      lineBreak: true,
+    });
+    const boxHeight = Math.max(54, Math.min(100, reasonHeight + 35));
+
+    // Keep the heading and content together whenever enough space remains.
+    if (!this.ensureSpace(doc, 20 + boxHeight + 10)) this.newPage(doc);
+    this.writeSectionHeader(doc, 'DEBIT NOTE');
+
+    const y = doc.y;
+    const background =
+      answer === 'YES'
+        ? C.yellow
+        : answer === 'NO'
+          ? C.mintBg
+          : C.tableAlt;
+    const accent =
+      answer === 'YES' ? C.orange : answer === 'NO' ? C.teal : C.faint;
+
+    doc.rect(left, y, w, boxHeight).fill(background);
+    doc.rect(left, y, 5, boxHeight).fill(accent);
+
+    doc.font(FONT_BOLD).fontSize(9).fillColor(C.ink);
+    doc.text(`Raised: ${answerLabel}`, left + 14, y + 7, {
+      width: w * 0.5,
+      height: 12,
+      lineBreak: false,
+    });
+    doc.x = doc.page.margins.left;
+    doc.text(`Supporting photos: ${photoCount}`, left + w * 0.55, y + 7, {
+      width: w * 0.4 - 14,
+      height: 12,
+      align: 'right',
+      lineBreak: false,
+    });
+    doc.x = doc.page.margins.left;
+
+    doc.font(FONT_REG).fontSize(9).fillColor(C.ink);
+    doc.text(`Reason: ${reason}`, left + 14, y + 23, {
+      width: w - 28,
+      height: boxHeight - 30,
+      lineBreak: true,
+    });
+    doc.x = doc.page.margins.left;
+    doc.y = y + boxHeight + 10;
+
+    if (photoUrls.length === 0) return;
+
+    const cols = 2;
+    const gap = 10;
+    const labelHeight = 12;
+    const cellWidth = (w - gap) / cols;
+    const cellHeight = 140;
+    const blockHeight = labelHeight + cellHeight + 8;
+
+    for (let index = 0; index < photoUrls.length; index++) {
+      const col = index % cols;
+      if (col === 0 && !this.ensureSpace(doc, blockHeight)) {
+        this.newPage(doc);
+        this.writeSectionHeader(doc, 'DEBIT NOTE - SUPPORTING EVIDENCE');
+      }
+
+      const x = left + col * (cellWidth + gap);
+      const labelY = doc.y;
+      const imageY = labelY + labelHeight;
+
+      doc.font(FONT_BOLD).fontSize(9).fillColor(C.ink);
+      doc.text(`DEBIT NOTE PHOTO ${index + 1}`, x, labelY + 2, {
+        width: cellWidth,
+        height: labelHeight - 2,
+        lineBreak: false,
+      });
+      doc.x = doc.page.margins.left;
+
+      doc.rect(x, imageY, cellWidth, cellHeight).fill(C.photoBg);
+      const image = await this.tryFetchPhoto(photoUrls[index]);
+      if (image) {
+        try {
+          doc.image(image, x + 6, imageY + 6, {
+            fit: [cellWidth - 12, cellHeight - 12],
+            align: 'center',
+            valign: 'center',
+          });
+        } catch {
+          doc.font(FONT_REG).fontSize(9).fillColor(C.faint);
+          doc.text('(image unavailable)', x, imageY + cellHeight / 2 - 6, {
+            width: cellWidth,
+            align: 'center',
+            height: 14,
+            lineBreak: false,
+          });
+        }
+      } else {
+        doc.font(FONT_REG).fontSize(9).fillColor(C.faint);
+        doc.text('(image unavailable)', x, imageY + cellHeight / 2 - 6, {
+          width: cellWidth,
+          align: 'center',
+          height: 14,
+          lineBreak: false,
+        });
+      }
+      doc.x = doc.page.margins.left;
+
+      if (col === cols - 1 || index === photoUrls.length - 1) {
+        doc.y = imageY + cellHeight + 8;
+      }
+    }
+  }
+
   // ── section: Final Comments (mint-green callout) ────────────────────
 
   private writeFinalComments(doc: PDFKit.PDFDocument, i: ReportableInspection) {
@@ -917,7 +1056,9 @@ export class DetailReportBuilder {
   private async writePhotoEvidence(doc: PDFKit.PDFDocument, i: ReportableInspection) {
     const { left, right } = doc.page.margins;
     const w = doc.page.width - left - right;
-    const all = i.photos ?? [];
+    const all = (i.photos ?? []).filter(
+      (photo) => photo.kind !== 'EVAL_DEBIT_NOTE',
+    );
 
     // Cap evidence section at 6 photos (3 rows × 2 cols) — matches
     // the reference. Anything beyond goes to per-defect pages below.
@@ -989,7 +1130,9 @@ export class DetailReportBuilder {
   private async writeDefectPhotoPages(doc: PDFKit.PDFDocument, i: ReportableInspection) {
     const { left, right } = doc.page.margins;
     const w = doc.page.width - left - right;
-    const all = i.photos ?? [];
+    const all = (i.photos ?? []).filter(
+      (photo) => photo.kind !== 'EVAL_DEBIT_NOTE',
+    );
     // Per-defect photos are tagged with `kind: 'DEFECT_MAJOR' /
     // 'DEFECT_MINOR'` plus `severity: 'MAJOR' | 'MINOR'`. We split
     // them out from the carton / evaluation / debit-note stream so

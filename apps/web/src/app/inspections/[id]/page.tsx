@@ -28,6 +28,41 @@ type AuditEmailEvent = {
   errorMessage?: string | null;
 };
 
+type InspectionPhoto = {
+  id?: string;
+  url: string;
+  caption?: string | null;
+  kind?: string | null;
+  severity?: string | null;
+};
+
+const PHOTO_KIND_LABELS: Record<string, string> = {
+  INSPECTION: 'Inspection evidence',
+  CARTON_UPLOAD: 'Cartons on arrival',
+  CARTON_INSPECT: 'Cartons inspected',
+  EVAL_INLINE_INSPECTION_DONE: 'Inline inspection evidence',
+  EVAL_PP_SAMPLE_APPROVED: 'PP sample approval evidence',
+  EVAL_IC_AVAILABLE: 'Inspection certificate evidence',
+  EVAL_BARCODE: 'Barcode evidence',
+  EVAL_CARE_LABEL: 'Care-label evidence',
+  EVAL_PACKING_LIST_AVAILABLE: 'Packing-list evidence',
+  EVAL_PO_SAME: 'Purchase-order evidence',
+  EVAL_ATTACH_MEASUREMENT_SHEET: 'Measurement-sheet evidence',
+  EVAL_STORAGE_OK: 'Storage-condition evidence',
+  EVAL_TEST_REPORT_AVAILABLE: 'Test-report evidence',
+  DEFECT_MAJOR: 'Major defect evidence',
+  DEFECT_MINOR: 'Minor defect evidence',
+};
+
+function photoLabel(photo: InspectionPhoto, index: number): string {
+  const caption = photo.caption?.trim();
+  if (caption) return caption;
+  const base =
+    (photo.kind && PHOTO_KIND_LABELS[photo.kind]) ||
+    (photo.severity ? `${photo.severity.toLowerCase()} defect evidence` : 'Inspection evidence');
+  return `${base} - Photo ${index + 1}`;
+}
+
 async function fetchInspection(id: string) {
   const token = cookies().get('qc_access')?.value;
   if (!token) return null;
@@ -62,6 +97,22 @@ export default async function InspectionDetail({
   const i = await fetchInspection(params.id);
   if (!i) notFound();
   const audit = await fetchAudit(params.id);
+  const photos = (i.photos ?? []) as InspectionPhoto[];
+  const generalPhotos = photos.filter(
+    (photo) => photo.kind !== 'EVAL_DEBIT_NOTE',
+  );
+  const debitPhotoRows = photos.filter(
+    (photo) => photo.kind === 'EVAL_DEBIT_NOTE',
+  );
+  const debitSnapshotUrls = (i.debitNote?.photoUrls ?? []) as string[];
+  const debitPhotoMap = new Map<string, InspectionPhoto>();
+  for (const photo of debitPhotoRows) debitPhotoMap.set(photo.url, photo);
+  for (const url of debitSnapshotUrls) {
+    if (!debitPhotoMap.has(url)) debitPhotoMap.set(url, { url });
+  }
+  const debitPhotos = Array.from(debitPhotoMap.values());
+  const debitAnswer = i.debitNote?.answer ?? '';
+  const debitComment = String(i.debitNote?.comment ?? '').trim();
 
   return (
     <div>
@@ -163,21 +214,98 @@ export default async function InspectionDetail({
           )}
         </section>
 
-        {i.photos?.length > 0 && (
+        <section className="bg-white rounded-xl border border-stone-200 p-4 md:col-span-2">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h3 className="font-semibold">Debit note</h3>
+            <span
+              className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-semibold ${
+                debitAnswer === 'YES'
+                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                  : debitAnswer === 'NO'
+                    ? 'bg-accept-soft text-accept-deep border-accept-border'
+                    : 'bg-stone-100 text-stone-600 border-stone-200'
+              }`}
+            >
+              {debitAnswer === 'YES'
+                ? 'Raised: Yes'
+                : debitAnswer === 'NO'
+                  ? 'Raised: No'
+                  : 'Not specified'}
+            </span>
+          </div>
+
+          <div className="rounded-md border border-stone-200 bg-stone-50 p-3 mb-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-1">
+              Reason
+            </div>
+            <p className="text-sm text-stone-800 whitespace-pre-wrap">
+              {debitComment || 'No debit-note reason provided.'}
+            </p>
+          </div>
+
+          {debitPhotos.length > 0 ? (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-2">
+                Supporting evidence ({debitPhotos.length})
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {debitPhotos.map((photo, index) => {
+                  const label = photo.caption?.trim() || `Debit note evidence - Photo ${index + 1}`;
+                  return (
+                    <a
+                      key={photo.id ?? photo.url}
+                      href={photo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group rounded-md overflow-hidden border border-stone-200 bg-white hover:border-qc-400 transition-colors"
+                    >
+                      <div className="aspect-square bg-stone-100 overflow-hidden">
+                        <img
+                          src={photo.url}
+                          alt={label}
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+                        />
+                      </div>
+                      <div className="px-2 py-1.5 text-xs font-medium text-stone-700">
+                        {label}
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-stone-400">No supporting photos.</div>
+          )}
+        </section>
+
+        {generalPhotos.length > 0 && (
           <section className="bg-white rounded-xl border border-stone-200 p-4 md:col-span-2">
             <h3 className="font-semibold mb-3">Photos</h3>
-            <div className="flex flex-wrap gap-3">
-              {i.photos.map((p: any) => (
-                <a
-                  key={p.id}
-                  href={p.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-32 h-32 bg-stone-100 rounded overflow-hidden border"
-                >
-                  <img src={p.url} alt={p.caption} className="w-full h-full object-cover" />
-                </a>
-              ))}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {generalPhotos.map((photo, index) => {
+                const label = photoLabel(photo, index);
+                return (
+                  <a
+                    key={photo.id ?? photo.url}
+                    href={photo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group rounded-md overflow-hidden border border-stone-200 bg-white hover:border-qc-400 transition-colors"
+                  >
+                    <div className="aspect-square bg-stone-100 overflow-hidden">
+                      <img
+                        src={photo.url}
+                        alt={label}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+                      />
+                    </div>
+                    <div className="px-2 py-1.5 text-xs font-medium text-stone-700">
+                      {label}
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           </section>
         )}
