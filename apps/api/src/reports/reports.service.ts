@@ -244,9 +244,16 @@ export class ReportsService {
         `Report ${reportId} is missing on disk — please regenerate.`,
       );
     }
+    const inspection = await this.inspectionsService.getById(
+      report.inspectionId,
+    );
     return {
       bytes: this.storage.read(report.storagePath),
-      filename: `inspection-detail-${report.inspectionId.slice(0, 8)}-${reportId.slice(0, 8)}.pdf`,
+      filename: this.buildDetailReportFilename(
+        inspection.inspectionNumber,
+        report.inspectionId,
+        reportId,
+      ),
       report,
     };
   }
@@ -265,9 +272,14 @@ export class ReportsService {
       order: { createdAt: 'DESC' },
     });
     if (latest && this.storage.exists(latest.storagePath)) {
+      const inspection = await this.inspectionsService.getById(inspectionId);
       return {
         bytes: this.storage.read(latest.storagePath),
-        filename: `inspection-detail-${inspectionId.slice(0, 8)}-${latest.id.slice(0, 8)}.pdf`,
+        filename: this.buildDetailReportFilename(
+          inspection.inspectionNumber,
+          inspectionId,
+          latest.id,
+        ),
         report: latest,
       };
     }
@@ -275,9 +287,14 @@ export class ReportsService {
       kind: 'MANUAL_DOWNLOAD',
       generatedBy: generatedBy ?? null,
     });
+    const inspection = await this.inspectionsService.getById(inspectionId);
     return {
       bytes: this.storage.read(fresh.storagePath),
-      filename: `inspection-detail-${inspectionId.slice(0, 8)}-${fresh.id.slice(0, 8)}.pdf`,
+      filename: this.buildDetailReportFilename(
+        inspection.inspectionNumber,
+        inspectionId,
+        fresh.id,
+      ),
       report: fresh,
     };
   }
@@ -300,9 +317,14 @@ export class ReportsService {
       kind: 'MANUAL_DOWNLOAD',
       generatedBy: generatedBy ?? null,
     });
+    const inspection = await this.inspectionsService.getById(inspectionId);
     return {
       bytes: this.storage.read(fresh.storagePath),
-      filename: `inspection-detail-${inspectionId.slice(0, 8)}-${fresh.id.slice(0, 8)}.pdf`,
+      filename: this.buildDetailReportFilename(
+        inspection.inspectionNumber,
+        inspectionId,
+        fresh.id,
+      ),
       report: fresh,
     };
   }
@@ -369,7 +391,11 @@ export class ReportsService {
       subject: input.subject,
       body: input.body,
       attachmentPath: this.storage.resolve(report.storagePath),
-      attachmentName: `inspection-detail-${inspectionId.slice(0, 8)}.pdf`,
+      attachmentName: this.buildDetailReportFilename(
+        inspection.inspectionNumber,
+        inspectionId,
+        report.id,
+      ),
     });
 
     savedEvent.emlPath = result.emlPath;
@@ -396,6 +422,22 @@ export class ReportsService {
       where: { inspectionId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  private buildDetailReportFilename(
+    inspectionNumber: string | null | undefined,
+    inspectionId: string,
+    reportId: string,
+  ): string {
+    const safeInspectionNumber = (inspectionNumber ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const inspectionPart = safeInspectionNumber
+      ? `${safeInspectionNumber}-${inspectionId.slice(0, 8)}`
+      : inspectionId.slice(0, 8);
+
+    return `inspection-detail-${inspectionPart}-${reportId.slice(0, 8)}.pdf`;
   }
 
   private label(doc: PDFKit.PDFDocument, label: string, value: string) {
