@@ -1,49 +1,28 @@
 'use client';
 import { useMemo, useState } from 'react';
-import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import ImportSpreadsheetButton from '@/components/ImportSpreadsheetButton';
 import { clientApiFetch } from '@/lib/api-client';
 
-
-interface Inspector {
+interface InspectionType {
   id: string;
   code: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
+  label: string;
+  description: string | null;
   isActive: boolean;
 }
 
-type SortKey =
-  | 'CODE_ASC'
-  | 'CODE_DESC'
-  | 'NAME_ASC'
-  | 'NAME_DESC'
-  | 'STATUS_ASC'
-  | 'STATUS_DESC';
+type SortKey = 'CODE_ASC' | 'CODE_DESC' | 'LABEL_ASC' | 'LABEL_DESC' | 'STATUS_ASC' | 'STATUS_DESC';
 
-export default function InspectorsEditor({ initial }: { initial: Inspector[] }) {
-  const [list, setList] = useState<Inspector[]>(initial);
-  const [draft, setDraft] = useState({
-    code: '',
-    name: '',
-    email: '',
-    phone: '',
-    notes: '',
-  });
+export default function InspectionTypesEditor({ initial }: { initial: InspectionType[] }) {
+  const [list, setList] = useState<InspectionType[]>(initial);
+  const [draft, setDraft] = useState({ code: '', label: '', description: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createOk, setCreateOk] = useState(false);
 
   // Editing
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [edit, setEdit] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    notes: '',
-    isActive: true,
-  });
+  const [edit, setEdit] = useState({ label: '', description: '', isActive: true });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
@@ -53,20 +32,18 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
   const [sortKey, setSortKey] = useState<SortKey>('CODE_ASC');
 
   async function create() {
-    if (!draft.code.trim() || !draft.name.trim()) return;
+    if (!draft.code.trim() || !draft.label.trim()) return;
     setCreating(true);
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await clientApiFetch('/inspectors', {
+      const res = await clientApiFetch('/inspection-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: draft.code.trim().toUpperCase(),
-          name: draft.name.trim(),
-          email: draft.email.trim() || null,
-          phone: draft.phone.trim() || null,
-          notes: draft.notes.trim() || null,
+          label: draft.label.trim(),
+          description: draft.description.trim() || null,
           isActive: true,
         }),
       });
@@ -75,9 +52,9 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const created = (await res.json()) as Inspector;
+      const created = (await res.json()) as InspectionType;
       setList([...list, created].sort((a, b) => a.code.localeCompare(b.code)));
-      setDraft({ code: '', name: '', email: '', phone: '', notes: '' });
+      setDraft({ code: '', label: '', description: '' });
       setCreateOk(true);
       setTimeout(() => setCreateOk(false), 2000);
     } catch (e: any) {
@@ -87,14 +64,12 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     }
   }
 
-  function startEdit(i: Inspector) {
-    setEditingId(i.id);
+  function startEdit(t: InspectionType) {
+    setEditingId(t.id);
     setEdit({
-      name: i.name,
-      email: i.email ?? '',
-      phone: i.phone ?? '',
-      notes: i.notes ?? '',
-      isActive: i.isActive,
+      label: t.label,
+      description: t.description ?? '',
+      isActive: t.isActive,
     });
     setEditError(null);
   }
@@ -104,18 +79,16 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     setEditError(null);
   }
 
-  async function saveEdit(i: Inspector) {
+  async function saveEdit(t: InspectionType) {
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await clientApiFetch(`/inspectors/${i.id}`, {
+      const res = await clientApiFetch(`/inspection-types/${t.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: edit.name.trim(),
-          email: edit.email.trim() || null,
-          phone: edit.phone.trim() || null,
-          notes: edit.notes.trim() || null,
+          label: edit.label.trim(),
+          description: edit.description.trim() || null,
           isActive: edit.isActive,
         }),
       });
@@ -124,8 +97,8 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const updated = (await res.json()) as Inspector;
-      setList(list.map((x) => (x.id === i.id ? updated : x)));
+      const updated = (await res.json()) as InspectionType;
+      setList(list.map((x) => (x.id === t.id ? updated : x)));
       setEditingId(null);
     } catch (e: any) {
       setEditError(e?.message ?? 'Network error');
@@ -134,44 +107,41 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     }
   }
 
-  async function remove(i: Inspector) {
-    if (
-      !confirm(
-        `Delete inspector "${i.code}"? This cannot be undone. Inspections that referenced this inspector will lose the link.`,
-      )
-    )
+  async function remove(t: InspectionType) {
+    if (!confirm(`Delete inspection type "${t.code}"? This cannot be undone.`))
       return;
-    const res = await clientApiFetch(`/inspectors/${i.id}`, {
+    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
       method: 'DELETE',
     });
-    if (res.ok) setList(list.filter((x) => x.id !== i.id));
+    if (res.ok) setList(list.filter((x) => x.id !== t.id));
     else {
       const txt = await res.text();
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
-  async function toggleActive(i: Inspector) {
-    const res = await clientApiFetch(`/inspectors/${i.id}`, {
+  async function toggleActive(t: InspectionType) {
+    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !i.isActive }),
+      body: JSON.stringify({ isActive: !t.isActive }),
     });
     if (res.ok) {
-      const updated = (await res.json()) as Inspector;
-      setList(list.map((x) => (x.id === i.id ? updated : x)));
+      const updated = (await res.json()) as InspectionType;
+      setList(list.map((x) => (x.id === t.id ? updated : x)));
     }
   }
 
+  // ---- derived list ----
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let rows = list.filter((i) => {
+    let rows = list.filter((t) => {
       if (q) {
-        const hay = `${i.code} ${i.name} ${i.email ?? ''} ${i.phone ?? ''} ${i.notes ?? ''}`.toLowerCase();
+        const hay = `${t.code} ${t.label} ${t.description ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (statusFilter === 'ACTIVE' && !i.isActive) return false;
-      if (statusFilter === 'INACTIVE' && i.isActive) return false;
+      if (statusFilter === 'ACTIVE' && !t.isActive) return false;
+      if (statusFilter === 'INACTIVE' && t.isActive) return false;
       return true;
     });
     rows.sort((a, b) => {
@@ -180,10 +150,10 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
           return a.code.localeCompare(b.code);
         case 'CODE_DESC':
           return b.code.localeCompare(a.code);
-        case 'NAME_ASC':
-          return a.name.localeCompare(b.name);
-        case 'NAME_DESC':
-          return b.name.localeCompare(a.name);
+        case 'LABEL_ASC':
+          return a.label.localeCompare(b.label);
+        case 'LABEL_DESC':
+          return b.label.localeCompare(a.label);
         case 'STATUS_ASC':
           return Number(a.isActive) - Number(b.isActive);
         case 'STATUS_DESC':
@@ -238,19 +208,19 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
       {/* Add new */}
       <div className="bg-white border border-stone-200 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-stone-700 mb-3">
-          Add a new inspector
+          Add a new inspection type
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label
-              htmlFor="i-code"
+              htmlFor="it-code"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
               Code <span className="text-red-500">*</span>
             </label>
             <input
-              id="i-code"
-              placeholder="e.g. INSP-004"
+              id="it-code"
+              placeholder="e.g. DUPRO"
               value={draft.code}
               onChange={(e) =>
                 setDraft({ ...draft, code: e.target.value.toUpperCase() })
@@ -264,65 +234,34 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
           </div>
           <div>
             <label
-              htmlFor="i-name"
+              htmlFor="it-label"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
-              Name <span className="text-red-500">*</span>
+              Label <span className="text-red-500">*</span>
             </label>
             <input
-              id="i-name"
-              placeholder="e.g. Bilal Ahmed"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              id="it-label"
+              placeholder="e.g. During Production Check"
+              value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
               className="w-full px-2 py-1.5 border rounded text-sm"
               maxLength={255}
             />
           </div>
           <div>
             <label
-              htmlFor="i-email"
+              htmlFor="it-desc"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
-              Email
+              Description
             </label>
             <input
-              id="i-email"
-              type="email"
-              placeholder="optional"
-              value={draft.email}
-              onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-              className="w-full px-2 py-1.5 border rounded text-sm"
-              maxLength={255}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="i-phone"
-              className="block text-xs font-medium text-stone-600 mb-1"
-            >
-              Phone
-            </label>
-            <input
-              id="i-phone"
-              placeholder="optional"
-              value={draft.phone}
-              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-              className="w-full px-2 py-1.5 border rounded text-sm"
-              maxLength={64}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label
-              htmlFor="i-notes"
-              className="block text-xs font-medium text-stone-600 mb-1"
-            >
-              Notes
-            </label>
-            <input
-              id="i-notes"
-              placeholder="Optional — anything relevant about this inspector"
-              value={draft.notes}
-              onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              id="it-desc"
+              placeholder="Optional — what this type means"
+              value={draft.description}
+              onChange={(e) =>
+                setDraft({ ...draft, description: e.target.value })
+              }
               className="w-full px-2 py-1.5 border rounded text-sm"
             />
           </div>
@@ -330,20 +269,21 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
             <button
               onClick={create}
               disabled={
-                !draft.code.trim() || !draft.name.trim() || creating
+                !draft.code.trim() || !draft.label.trim() || creating
               }
               className="bg-qc-600 hover:bg-qc-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {creating ? 'Saving…' : 'Add inspector'}
+              {creating ? 'Saving…' : 'Add type'}
             </button>
             <ImportSpreadsheetButton
               label="Import CSV / Excel"
-              endpoint="/inspectors/bulk-import"
-              templateName="inspectors-template.csv"
+              endpoint="/inspection-types/bulk-import"
+              templateName="inspection-types-template.csv"
               templateCsv={
-                'code,name,email,phone,notes,isActive\n' +
-                'INSP-004,Bilal Ahmed,bilal@qc.local,+1-555-0140,Senior inspector,true\n' +
-                'INSP-005,Sana Iqbal,sana@qc.local,+1-555-0151,Backup,true\n'
+                'code,label,description,isActive\n' +
+                'INLINE,Inline inspection,Inspection performed during production,true\n' +
+                'FINAL,Final inspection,Pre-shipment inspection of finished lot,true\n' +
+                'DUPRO,During Production,Dupro check mid-run,true\n'
               }
               onImported={() => window.location.reload()}
             />
@@ -369,18 +309,18 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[200px]">
             <label
-              htmlFor="i-search"
+              htmlFor="it-search"
               className="block text-xs text-stone-500 mb-1"
             >
               Search
             </label>
             <div className="relative">
               <input
-                id="i-search"
+                id="it-search"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Code, name, email, phone…"
+                placeholder="Code, label, or description…"
                 className="w-full px-2 py-1.5 pr-7 border rounded text-sm"
               />
               {search && (
@@ -398,13 +338,13 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
 
           <div>
             <label
-              htmlFor="i-status"
+              htmlFor="it-status"
               className="block text-xs text-stone-500 mb-1"
             >
               Status
             </label>
             <select
-              id="i-status"
+              id="it-status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="px-2 py-1.5 border rounded text-sm"
@@ -416,19 +356,19 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
           </div>
 
           <div>
-            <label htmlFor="i-sort" className="block text-xs text-stone-500 mb-1">
+            <label htmlFor="it-sort" className="block text-xs text-stone-500 mb-1">
               Sort by
             </label>
             <select
-              id="i-sort"
+              id="it-sort"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               className="px-2 py-1.5 border rounded text-sm"
             >
               <option value="CODE_ASC">Code A → Z</option>
               <option value="CODE_DESC">Code Z → A</option>
-              <option value="NAME_ASC">Name A → Z</option>
-              <option value="NAME_DESC">Name Z → A</option>
+              <option value="LABEL_ASC">Label A → Z</option>
+              <option value="LABEL_DESC">Label Z → A</option>
               <option value="STATUS_ASC">Status (inactive → active)</option>
               <option value="STATUS_DESC">Status (active → inactive)</option>
             </select>
@@ -458,7 +398,7 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
             <SortHeader label="Code" sortValue="CODE_ASC" />
           </div>
           <div className="flex-1 min-w-[180px]">
-            <SortHeader label="Name" sortValue="NAME_ASC" />
+            <SortHeader label="Label" sortValue="LABEL_ASC" />
           </div>
           <div className="w-32">
             <SortHeader label="Status" sortValue="STATUS_ASC" />
@@ -470,29 +410,29 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
           {visible.length === 0 && (
             <div className="p-8 text-center text-stone-400 text-sm">
               {list.length === 0
-                ? 'No inspectors yet.'
-                : 'No inspectors match the current filter.'}
+                ? 'No inspection types yet.'
+                : 'No inspection types match the current filter.'}
             </div>
           )}
-          {visible.map((i) =>
-            editingId === i.id ? (
+          {visible.map((t) =>
+            editingId === t.id ? (
               <EditRow
-                key={i.id}
-                i={i}
+                key={t.id}
+                t={t}
                 edit={edit}
                 setEdit={setEdit}
                 saving={editSaving}
                 error={editError}
-                onSave={() => saveEdit(i)}
+                onSave={() => saveEdit(t)}
                 onCancel={cancelEdit}
               />
             ) : (
               <ReadRow
-                key={i.id}
-                i={i}
-                onEdit={() => startEdit(i)}
-                onDelete={() => remove(i)}
-                onToggle={() => toggleActive(i)}
+                key={t.id}
+                t={t}
+                onEdit={() => startEdit(t)}
+                onDelete={() => remove(t)}
+                onToggle={() => toggleActive(t)}
               />
             ),
           )}
@@ -518,10 +458,10 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
 }
 
 function ActiveToggle({
-  i,
+  t,
   toggle,
 }: {
-  i: Inspector;
+  t: InspectionType;
   toggle: () => void;
 }) {
   return (
@@ -529,39 +469,36 @@ function ActiveToggle({
       type="button"
       onClick={toggle}
       className={`text-xs px-2 py-0.5 rounded ${
-        i.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
+        t.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
       }`}
     >
-      {i.isActive ? 'ACTIVE' : 'INACTIVE'}
+      {t.isActive ? 'ACTIVE' : 'INACTIVE'}
     </button>
   );
 }
 
 function ReadRow({
-  i,
+  t,
   onEdit,
   onDelete,
   onToggle,
 }: {
-  i: Inspector;
+  t: InspectionType;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 text-sm">
-      <div className="w-32 font-mono font-semibold text-stone-800">{i.code}</div>
+      <div className="w-32 font-mono font-semibold text-stone-800">{t.code}</div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-stone-800">{i.name}</div>
-        <div className="text-xs text-stone-500 truncate">
-          {[i.email, i.phone].filter(Boolean).join(' · ') || '—'}
-        </div>
-        {i.notes && (
-          <div className="text-xs text-stone-500 truncate">{i.notes}</div>
+        <div className="font-medium text-stone-800">{t.label}</div>
+        {t.description && (
+          <div className="text-xs text-stone-500 truncate">{t.description}</div>
         )}
       </div>
       <div className="w-32">
-        <ActiveToggle i={i} toggle={onToggle} />
+        <ActiveToggle t={t} toggle={onToggle} />
       </div>
       <div className="w-32 flex justify-end gap-2">
         <button
@@ -584,7 +521,7 @@ function ReadRow({
 }
 
 function EditRow({
-  i,
+  t,
   edit,
   setEdit,
   saving,
@@ -592,9 +529,9 @@ function EditRow({
   onSave,
   onCancel,
 }: {
-  i: Inspector;
-  edit: { name: string; email: string; phone: string; notes: string; isActive: boolean };
-  setEdit: (v: { name: string; email: string; phone: string; notes: string; isActive: boolean }) => void;
+  t: InspectionType;
+  edit: { label: string; description: string; isActive: boolean };
+  setEdit: (v: { label: string; description: string; isActive: boolean }) => void;
   saving: boolean;
   error: string | null;
   onSave: () => void;
@@ -603,36 +540,19 @@ function EditRow({
   return (
     <div className="px-4 py-3 bg-qc-soft/40 border-l-4 border-qc-500">
       <div className="flex items-center gap-3 text-sm">
-        <div className="w-32 font-mono font-semibold text-stone-800">{i.code}</div>
+        <div className="w-32 font-mono font-semibold text-stone-800">{t.code}</div>
         <div className="flex-1 min-w-0 space-y-2">
           <input
-            value={edit.name}
-            onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-            placeholder="Name"
+            value={edit.label}
+            onChange={(e) => setEdit({ ...edit, label: e.target.value })}
+            placeholder="Label"
             className="w-full px-2 py-1 border rounded text-sm"
             maxLength={255}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              value={edit.email}
-              onChange={(e) => setEdit({ ...edit, email: e.target.value })}
-              placeholder="Email (optional)"
-              type="email"
-              className="w-full px-2 py-1 border rounded text-sm"
-              maxLength={255}
-            />
-            <input
-              value={edit.phone}
-              onChange={(e) => setEdit({ ...edit, phone: e.target.value })}
-              placeholder="Phone (optional)"
-              className="w-full px-2 py-1 border rounded text-sm"
-              maxLength={64}
-            />
-          </div>
           <input
-            value={edit.notes}
-            onChange={(e) => setEdit({ ...edit, notes: e.target.value })}
-            placeholder="Notes (optional)"
+            value={edit.description}
+            onChange={(e) => setEdit({ ...edit, description: e.target.value })}
+            placeholder="Description (optional)"
             className="w-full px-2 py-1 border rounded text-sm"
           />
         </div>
@@ -649,18 +569,19 @@ function EditRow({
         <div className="w-32 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onSave}
-            disabled={saving || !edit.name.trim()}
-            className="text-xs px-2 py-1 rounded bg-qc-600 text-white hover:bg-qc-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={onCancel}
+            disabled={saving}
+            className="text-xs px-2 py-1 rounded border border-stone-300 hover:bg-white"
           >
-            {saving ? 'Saving…' : 'Save'}
+            Cancel
           </button>
           <button
             type="button"
-            onClick={onCancel}
-            className="text-xs px-2 py-1 rounded border border-stone-300 hover:bg-stone-50"
+            onClick={onSave}
+            disabled={!edit.label.trim() || saving}
+            className="text-xs px-2 py-1 rounded bg-qc-600 text-white hover:bg-qc-700 disabled:opacity-40"
           >
-            Cancel
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>

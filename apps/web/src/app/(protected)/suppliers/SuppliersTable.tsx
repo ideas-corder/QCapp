@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import ImportCsvButton from '../../components/ImportCsvButton';
+import ImportCsvButton from '@/components/ImportCsvButton';
 import { clientApiFetch } from '@/lib/api-client';
 
 interface Supplier {

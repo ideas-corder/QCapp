@@ -1,18 +1,16 @@
 'use client';
 import { useMemo, useState } from 'react';
-import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import ImportSpreadsheetButton from '@/components/ImportSpreadsheetButton';
 import { clientApiFetch } from '@/lib/api-client';
 
-/**
- * Send the user back to /login when the API rejects the request as 401.
- * Used by every editor fetch so a stale session is impossible to miss.
- */
 
-interface ProductCategory {
+interface Inspector {
   id: string;
   code: string;
   name: string;
-  description: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
   isActive: boolean;
 }
 
@@ -24,20 +22,28 @@ type SortKey =
   | 'STATUS_ASC'
   | 'STATUS_DESC';
 
-export default function ProductCategoriesEditor({
-  initial,
-}: {
-  initial: ProductCategory[];
-}) {
-  const [list, setList] = useState<ProductCategory[]>(initial);
-  const [draft, setDraft] = useState({ code: '', name: '', description: '' });
+export default function InspectorsEditor({ initial }: { initial: Inspector[] }) {
+  const [list, setList] = useState<Inspector[]>(initial);
+  const [draft, setDraft] = useState({
+    code: '',
+    name: '',
+    email: '',
+    phone: '',
+    notes: '',
+  });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createOk, setCreateOk] = useState(false);
 
   // Editing
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [edit, setEdit] = useState({ name: '', description: '', isActive: true });
+  const [edit, setEdit] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    notes: '',
+    isActive: true,
+  });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
@@ -52,13 +58,15 @@ export default function ProductCategoriesEditor({
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await clientApiFetch('/product-categories', {
+      const res = await clientApiFetch('/inspectors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: draft.code.trim().toUpperCase(),
           name: draft.name.trim(),
-          description: draft.description.trim() || null,
+          email: draft.email.trim() || null,
+          phone: draft.phone.trim() || null,
+          notes: draft.notes.trim() || null,
           isActive: true,
         }),
       });
@@ -67,9 +75,9 @@ export default function ProductCategoriesEditor({
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const created = (await res.json()) as ProductCategory;
+      const created = (await res.json()) as Inspector;
       setList([...list, created].sort((a, b) => a.code.localeCompare(b.code)));
-      setDraft({ code: '', name: '', description: '' });
+      setDraft({ code: '', name: '', email: '', phone: '', notes: '' });
       setCreateOk(true);
       setTimeout(() => setCreateOk(false), 2000);
     } catch (e: any) {
@@ -79,12 +87,14 @@ export default function ProductCategoriesEditor({
     }
   }
 
-  function startEdit(p: ProductCategory) {
-    setEditingId(p.id);
+  function startEdit(i: Inspector) {
+    setEditingId(i.id);
     setEdit({
-      name: p.name,
-      description: p.description ?? '',
-      isActive: p.isActive,
+      name: i.name,
+      email: i.email ?? '',
+      phone: i.phone ?? '',
+      notes: i.notes ?? '',
+      isActive: i.isActive,
     });
     setEditError(null);
   }
@@ -94,16 +104,18 @@ export default function ProductCategoriesEditor({
     setEditError(null);
   }
 
-  async function saveEdit(p: ProductCategory) {
+  async function saveEdit(i: Inspector) {
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await clientApiFetch(`/product-categories/${p.id}`, {
+      const res = await clientApiFetch(`/inspectors/${i.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: edit.name.trim(),
-          description: edit.description.trim() || null,
+          email: edit.email.trim() || null,
+          phone: edit.phone.trim() || null,
+          notes: edit.notes.trim() || null,
           isActive: edit.isActive,
         }),
       });
@@ -112,8 +124,8 @@ export default function ProductCategoriesEditor({
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const updated = (await res.json()) as ProductCategory;
-      setList(list.map((x) => (x.id === p.id ? updated : x)));
+      const updated = (await res.json()) as Inspector;
+      setList(list.map((x) => (x.id === i.id ? updated : x)));
       setEditingId(null);
     } catch (e: any) {
       setEditError(e?.message ?? 'Network error');
@@ -122,45 +134,44 @@ export default function ProductCategoriesEditor({
     }
   }
 
-  async function remove(p: ProductCategory) {
+  async function remove(i: Inspector) {
     if (
       !confirm(
-        `Delete product category "${p.code}"? This cannot be undone. Inspections that referenced it will lose the link.`,
+        `Delete inspector "${i.code}"? This cannot be undone. Inspections that referenced this inspector will lose the link.`,
       )
     )
       return;
-    const res = await clientApiFetch(`/product-categories/${p.id}`, {
+    const res = await clientApiFetch(`/inspectors/${i.id}`, {
       method: 'DELETE',
     });
-    if (res.ok) setList(list.filter((x) => x.id !== p.id));
+    if (res.ok) setList(list.filter((x) => x.id !== i.id));
     else {
       const txt = await res.text();
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
-  async function toggleActive(p: ProductCategory) {
-    const res = await clientApiFetch(`/product-categories/${p.id}`, {
+  async function toggleActive(i: Inspector) {
+    const res = await clientApiFetch(`/inspectors/${i.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !p.isActive }),
+      body: JSON.stringify({ isActive: !i.isActive }),
     });
     if (res.ok) {
-      const updated = (await res.json()) as ProductCategory;
-      setList(list.map((x) => (x.id === p.id ? updated : x)));
+      const updated = (await res.json()) as Inspector;
+      setList(list.map((x) => (x.id === i.id ? updated : x)));
     }
   }
 
-  // ---- derived list ----
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let rows = list.filter((p) => {
+    let rows = list.filter((i) => {
       if (q) {
-        const hay = `${p.code} ${p.name} ${p.description ?? ''}`.toLowerCase();
+        const hay = `${i.code} ${i.name} ${i.email ?? ''} ${i.phone ?? ''} ${i.notes ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (statusFilter === 'ACTIVE' && !p.isActive) return false;
-      if (statusFilter === 'INACTIVE' && p.isActive) return false;
+      if (statusFilter === 'ACTIVE' && !i.isActive) return false;
+      if (statusFilter === 'INACTIVE' && i.isActive) return false;
       return true;
     });
     rows.sort((a, b) => {
@@ -227,25 +238,25 @@ export default function ProductCategoriesEditor({
       {/* Add new */}
       <div className="bg-white border border-stone-200 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-stone-700 mb-3">
-          Add a new product category
+          Add a new inspector
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label
-              htmlFor="pc-code"
+              htmlFor="i-code"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
               Code <span className="text-red-500">*</span>
             </label>
             <input
-              id="pc-code"
-              placeholder="e.g. KIDS-WEAR"
+              id="i-code"
+              placeholder="e.g. INSP-004"
               value={draft.code}
               onChange={(e) =>
                 setDraft({ ...draft, code: e.target.value.toUpperCase() })
               }
               className="w-full px-2 py-1.5 border rounded text-sm font-mono"
-              maxLength={64}
+              maxLength={32}
             />
             <p className="text-[11px] text-stone-500 mt-0.5">
               A–Z, 0–9, dash, underscore. Saved uppercase.
@@ -253,14 +264,14 @@ export default function ProductCategoriesEditor({
           </div>
           <div>
             <label
-              htmlFor="pc-name"
+              htmlFor="i-name"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
               Name <span className="text-red-500">*</span>
             </label>
             <input
-              id="pc-name"
-              placeholder="e.g. Kids wear"
+              id="i-name"
+              placeholder="e.g. Bilal Ahmed"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               className="w-full px-2 py-1.5 border rounded text-sm"
@@ -269,18 +280,49 @@ export default function ProductCategoriesEditor({
           </div>
           <div>
             <label
-              htmlFor="pc-desc"
+              htmlFor="i-email"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
-              Description
+              Email
             </label>
             <input
-              id="pc-desc"
-              placeholder="Optional — what this category covers"
-              value={draft.description}
-              onChange={(e) =>
-                setDraft({ ...draft, description: e.target.value })
-              }
+              id="i-email"
+              type="email"
+              placeholder="optional"
+              value={draft.email}
+              onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+              className="w-full px-2 py-1.5 border rounded text-sm"
+              maxLength={255}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="i-phone"
+              className="block text-xs font-medium text-stone-600 mb-1"
+            >
+              Phone
+            </label>
+            <input
+              id="i-phone"
+              placeholder="optional"
+              value={draft.phone}
+              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+              className="w-full px-2 py-1.5 border rounded text-sm"
+              maxLength={64}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label
+              htmlFor="i-notes"
+              className="block text-xs font-medium text-stone-600 mb-1"
+            >
+              Notes
+            </label>
+            <input
+              id="i-notes"
+              placeholder="Optional — anything relevant about this inspector"
+              value={draft.notes}
+              onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
               className="w-full px-2 py-1.5 border rounded text-sm"
             />
           </div>
@@ -292,17 +334,16 @@ export default function ProductCategoriesEditor({
               }
               className="bg-qc-600 hover:bg-qc-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {creating ? 'Saving…' : 'Add category'}
+              {creating ? 'Saving…' : 'Add inspector'}
             </button>
             <ImportSpreadsheetButton
               label="Import CSV / Excel"
-              endpoint="/product-categories/bulk-import"
-              templateName="product-categories-template.csv"
+              endpoint="/inspectors/bulk-import"
+              templateName="inspectors-template.csv"
               templateCsv={
-                'code,name,description,isActive\n' +
-                'APPAREL,Apparel,Clothing, garments, accessories,true\n' +
-                'FOOTWEAR,Footwear,Shoes, boots, slippers,true\n' +
-                'ELECTRONICS,Electronics,Consumer electronics,true\n'
+                'code,name,email,phone,notes,isActive\n' +
+                'INSP-004,Bilal Ahmed,bilal@qc.local,+1-555-0140,Senior inspector,true\n' +
+                'INSP-005,Sana Iqbal,sana@qc.local,+1-555-0151,Backup,true\n'
               }
               onImported={() => window.location.reload()}
             />
@@ -328,18 +369,18 @@ export default function ProductCategoriesEditor({
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[200px]">
             <label
-              htmlFor="pc-search"
+              htmlFor="i-search"
               className="block text-xs text-stone-500 mb-1"
             >
               Search
             </label>
             <div className="relative">
               <input
-                id="pc-search"
+                id="i-search"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Code, name, or description…"
+                placeholder="Code, name, email, phone…"
                 className="w-full px-2 py-1.5 pr-7 border rounded text-sm"
               />
               {search && (
@@ -357,13 +398,13 @@ export default function ProductCategoriesEditor({
 
           <div>
             <label
-              htmlFor="pc-status"
+              htmlFor="i-status"
               className="block text-xs text-stone-500 mb-1"
             >
               Status
             </label>
             <select
-              id="pc-status"
+              id="i-status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="px-2 py-1.5 border rounded text-sm"
@@ -375,11 +416,11 @@ export default function ProductCategoriesEditor({
           </div>
 
           <div>
-            <label htmlFor="pc-sort" className="block text-xs text-stone-500 mb-1">
+            <label htmlFor="i-sort" className="block text-xs text-stone-500 mb-1">
               Sort by
             </label>
             <select
-              id="pc-sort"
+              id="i-sort"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               className="px-2 py-1.5 border rounded text-sm"
@@ -429,29 +470,29 @@ export default function ProductCategoriesEditor({
           {visible.length === 0 && (
             <div className="p-8 text-center text-stone-400 text-sm">
               {list.length === 0
-                ? 'No product categories yet.'
-                : 'No product categories match the current filter.'}
+                ? 'No inspectors yet.'
+                : 'No inspectors match the current filter.'}
             </div>
           )}
-          {visible.map((p) =>
-            editingId === p.id ? (
+          {visible.map((i) =>
+            editingId === i.id ? (
               <EditRow
-                key={p.id}
-                p={p}
+                key={i.id}
+                i={i}
                 edit={edit}
                 setEdit={setEdit}
                 saving={editSaving}
                 error={editError}
-                onSave={() => saveEdit(p)}
+                onSave={() => saveEdit(i)}
                 onCancel={cancelEdit}
               />
             ) : (
               <ReadRow
-                key={p.id}
-                p={p}
-                onEdit={() => startEdit(p)}
-                onDelete={() => remove(p)}
-                onToggle={() => toggleActive(p)}
+                key={i.id}
+                i={i}
+                onEdit={() => startEdit(i)}
+                onDelete={() => remove(i)}
+                onToggle={() => toggleActive(i)}
               />
             ),
           )}
@@ -477,10 +518,10 @@ export default function ProductCategoriesEditor({
 }
 
 function ActiveToggle({
-  p,
+  i,
   toggle,
 }: {
-  p: ProductCategory;
+  i: Inspector;
   toggle: () => void;
 }) {
   return (
@@ -488,36 +529,39 @@ function ActiveToggle({
       type="button"
       onClick={toggle}
       className={`text-xs px-2 py-0.5 rounded ${
-        p.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
+        i.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
       }`}
     >
-      {p.isActive ? 'ACTIVE' : 'INACTIVE'}
+      {i.isActive ? 'ACTIVE' : 'INACTIVE'}
     </button>
   );
 }
 
 function ReadRow({
-  p,
+  i,
   onEdit,
   onDelete,
   onToggle,
 }: {
-  p: ProductCategory;
+  i: Inspector;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 text-sm">
-      <div className="w-32 font-mono font-semibold text-stone-800">{p.code}</div>
+      <div className="w-32 font-mono font-semibold text-stone-800">{i.code}</div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-stone-800">{p.name}</div>
-        {p.description && (
-          <div className="text-xs text-stone-500 truncate">{p.description}</div>
+        <div className="font-medium text-stone-800">{i.name}</div>
+        <div className="text-xs text-stone-500 truncate">
+          {[i.email, i.phone].filter(Boolean).join(' · ') || '—'}
+        </div>
+        {i.notes && (
+          <div className="text-xs text-stone-500 truncate">{i.notes}</div>
         )}
       </div>
       <div className="w-32">
-        <ActiveToggle p={p} toggle={onToggle} />
+        <ActiveToggle i={i} toggle={onToggle} />
       </div>
       <div className="w-32 flex justify-end gap-2">
         <button
@@ -540,7 +584,7 @@ function ReadRow({
 }
 
 function EditRow({
-  p,
+  i,
   edit,
   setEdit,
   saving,
@@ -548,9 +592,9 @@ function EditRow({
   onSave,
   onCancel,
 }: {
-  p: ProductCategory;
-  edit: { name: string; description: string; isActive: boolean };
-  setEdit: (v: { name: string; description: string; isActive: boolean }) => void;
+  i: Inspector;
+  edit: { name: string; email: string; phone: string; notes: string; isActive: boolean };
+  setEdit: (v: { name: string; email: string; phone: string; notes: string; isActive: boolean }) => void;
   saving: boolean;
   error: string | null;
   onSave: () => void;
@@ -559,7 +603,7 @@ function EditRow({
   return (
     <div className="px-4 py-3 bg-qc-soft/40 border-l-4 border-qc-500">
       <div className="flex items-center gap-3 text-sm">
-        <div className="w-32 font-mono font-semibold text-stone-800">{p.code}</div>
+        <div className="w-32 font-mono font-semibold text-stone-800">{i.code}</div>
         <div className="flex-1 min-w-0 space-y-2">
           <input
             value={edit.name}
@@ -568,10 +612,27 @@ function EditRow({
             className="w-full px-2 py-1 border rounded text-sm"
             maxLength={255}
           />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={edit.email}
+              onChange={(e) => setEdit({ ...edit, email: e.target.value })}
+              placeholder="Email (optional)"
+              type="email"
+              className="w-full px-2 py-1 border rounded text-sm"
+              maxLength={255}
+            />
+            <input
+              value={edit.phone}
+              onChange={(e) => setEdit({ ...edit, phone: e.target.value })}
+              placeholder="Phone (optional)"
+              className="w-full px-2 py-1 border rounded text-sm"
+              maxLength={64}
+            />
+          </div>
           <input
-            value={edit.description}
-            onChange={(e) => setEdit({ ...edit, description: e.target.value })}
-            placeholder="Description (optional)"
+            value={edit.notes}
+            onChange={(e) => setEdit({ ...edit, notes: e.target.value })}
+            placeholder="Notes (optional)"
             className="w-full px-2 py-1 border rounded text-sm"
           />
         </div>

@@ -160,7 +160,7 @@ type UploadedPhoto = {
   mimeType: string;
 };
 
-import type { UiLayout } from '../../../lib/uiLayout';
+import type { UiLayout } from '@/lib/uiLayout';
 
 /**
  * Step 10 of the New Inspection form ("Signatures") — every

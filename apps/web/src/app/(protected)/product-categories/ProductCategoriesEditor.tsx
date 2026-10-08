@@ -1,28 +1,43 @@
 'use client';
 import { useMemo, useState } from 'react';
-import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import ImportSpreadsheetButton from '@/components/ImportSpreadsheetButton';
 import { clientApiFetch } from '@/lib/api-client';
 
-interface InspectionType {
+/**
+ * Send the user back to /login when the API rejects the request as 401.
+ * Used by every editor fetch so a stale session is impossible to miss.
+ */
+
+interface ProductCategory {
   id: string;
   code: string;
-  label: string;
+  name: string;
   description: string | null;
   isActive: boolean;
 }
 
-type SortKey = 'CODE_ASC' | 'CODE_DESC' | 'LABEL_ASC' | 'LABEL_DESC' | 'STATUS_ASC' | 'STATUS_DESC';
+type SortKey =
+  | 'CODE_ASC'
+  | 'CODE_DESC'
+  | 'NAME_ASC'
+  | 'NAME_DESC'
+  | 'STATUS_ASC'
+  | 'STATUS_DESC';
 
-export default function InspectionTypesEditor({ initial }: { initial: InspectionType[] }) {
-  const [list, setList] = useState<InspectionType[]>(initial);
-  const [draft, setDraft] = useState({ code: '', label: '', description: '' });
+export default function ProductCategoriesEditor({
+  initial,
+}: {
+  initial: ProductCategory[];
+}) {
+  const [list, setList] = useState<ProductCategory[]>(initial);
+  const [draft, setDraft] = useState({ code: '', name: '', description: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createOk, setCreateOk] = useState(false);
 
   // Editing
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [edit, setEdit] = useState({ label: '', description: '', isActive: true });
+  const [edit, setEdit] = useState({ name: '', description: '', isActive: true });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
 
@@ -32,17 +47,17 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
   const [sortKey, setSortKey] = useState<SortKey>('CODE_ASC');
 
   async function create() {
-    if (!draft.code.trim() || !draft.label.trim()) return;
+    if (!draft.code.trim() || !draft.name.trim()) return;
     setCreating(true);
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await clientApiFetch('/inspection-types', {
+      const res = await clientApiFetch('/product-categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: draft.code.trim().toUpperCase(),
-          label: draft.label.trim(),
+          name: draft.name.trim(),
           description: draft.description.trim() || null,
           isActive: true,
         }),
@@ -52,9 +67,9 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const created = (await res.json()) as InspectionType;
+      const created = (await res.json()) as ProductCategory;
       setList([...list, created].sort((a, b) => a.code.localeCompare(b.code)));
-      setDraft({ code: '', label: '', description: '' });
+      setDraft({ code: '', name: '', description: '' });
       setCreateOk(true);
       setTimeout(() => setCreateOk(false), 2000);
     } catch (e: any) {
@@ -64,12 +79,12 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     }
   }
 
-  function startEdit(t: InspectionType) {
-    setEditingId(t.id);
+  function startEdit(p: ProductCategory) {
+    setEditingId(p.id);
     setEdit({
-      label: t.label,
-      description: t.description ?? '',
-      isActive: t.isActive,
+      name: p.name,
+      description: p.description ?? '',
+      isActive: p.isActive,
     });
     setEditError(null);
   }
@@ -79,15 +94,15 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     setEditError(null);
   }
 
-  async function saveEdit(t: InspectionType) {
+  async function saveEdit(p: ProductCategory) {
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await clientApiFetch(`/inspection-types/${t.id}`, {
+      const res = await clientApiFetch(`/product-categories/${p.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          label: edit.label.trim(),
+          name: edit.name.trim(),
           description: edit.description.trim() || null,
           isActive: edit.isActive,
         }),
@@ -97,8 +112,8 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
-      const updated = (await res.json()) as InspectionType;
-      setList(list.map((x) => (x.id === t.id ? updated : x)));
+      const updated = (await res.json()) as ProductCategory;
+      setList(list.map((x) => (x.id === p.id ? updated : x)));
       setEditingId(null);
     } catch (e: any) {
       setEditError(e?.message ?? 'Network error');
@@ -107,41 +122,45 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     }
   }
 
-  async function remove(t: InspectionType) {
-    if (!confirm(`Delete inspection type "${t.code}"? This cannot be undone.`))
+  async function remove(p: ProductCategory) {
+    if (
+      !confirm(
+        `Delete product category "${p.code}"? This cannot be undone. Inspections that referenced it will lose the link.`,
+      )
+    )
       return;
-    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
+    const res = await clientApiFetch(`/product-categories/${p.id}`, {
       method: 'DELETE',
     });
-    if (res.ok) setList(list.filter((x) => x.id !== t.id));
+    if (res.ok) setList(list.filter((x) => x.id !== p.id));
     else {
       const txt = await res.text();
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
-  async function toggleActive(t: InspectionType) {
-    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
+  async function toggleActive(p: ProductCategory) {
+    const res = await clientApiFetch(`/product-categories/${p.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: !t.isActive }),
+      body: JSON.stringify({ isActive: !p.isActive }),
     });
     if (res.ok) {
-      const updated = (await res.json()) as InspectionType;
-      setList(list.map((x) => (x.id === t.id ? updated : x)));
+      const updated = (await res.json()) as ProductCategory;
+      setList(list.map((x) => (x.id === p.id ? updated : x)));
     }
   }
 
   // ---- derived list ----
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let rows = list.filter((t) => {
+    let rows = list.filter((p) => {
       if (q) {
-        const hay = `${t.code} ${t.label} ${t.description ?? ''}`.toLowerCase();
+        const hay = `${p.code} ${p.name} ${p.description ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (statusFilter === 'ACTIVE' && !t.isActive) return false;
-      if (statusFilter === 'INACTIVE' && t.isActive) return false;
+      if (statusFilter === 'ACTIVE' && !p.isActive) return false;
+      if (statusFilter === 'INACTIVE' && p.isActive) return false;
       return true;
     });
     rows.sort((a, b) => {
@@ -150,10 +169,10 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
           return a.code.localeCompare(b.code);
         case 'CODE_DESC':
           return b.code.localeCompare(a.code);
-        case 'LABEL_ASC':
-          return a.label.localeCompare(b.label);
-        case 'LABEL_DESC':
-          return b.label.localeCompare(a.label);
+        case 'NAME_ASC':
+          return a.name.localeCompare(b.name);
+        case 'NAME_DESC':
+          return b.name.localeCompare(a.name);
         case 'STATUS_ASC':
           return Number(a.isActive) - Number(b.isActive);
         case 'STATUS_DESC':
@@ -208,25 +227,25 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
       {/* Add new */}
       <div className="bg-white border border-stone-200 rounded-xl p-4">
         <h2 className="text-sm font-semibold text-stone-700 mb-3">
-          Add a new inspection type
+          Add a new product category
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label
-              htmlFor="it-code"
+              htmlFor="pc-code"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
               Code <span className="text-red-500">*</span>
             </label>
             <input
-              id="it-code"
-              placeholder="e.g. DUPRO"
+              id="pc-code"
+              placeholder="e.g. KIDS-WEAR"
               value={draft.code}
               onChange={(e) =>
                 setDraft({ ...draft, code: e.target.value.toUpperCase() })
               }
               className="w-full px-2 py-1.5 border rounded text-sm font-mono"
-              maxLength={32}
+              maxLength={64}
             />
             <p className="text-[11px] text-stone-500 mt-0.5">
               A–Z, 0–9, dash, underscore. Saved uppercase.
@@ -234,30 +253,30 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
           </div>
           <div>
             <label
-              htmlFor="it-label"
+              htmlFor="pc-name"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
-              Label <span className="text-red-500">*</span>
+              Name <span className="text-red-500">*</span>
             </label>
             <input
-              id="it-label"
-              placeholder="e.g. During Production Check"
-              value={draft.label}
-              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+              id="pc-name"
+              placeholder="e.g. Kids wear"
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               className="w-full px-2 py-1.5 border rounded text-sm"
               maxLength={255}
             />
           </div>
           <div>
             <label
-              htmlFor="it-desc"
+              htmlFor="pc-desc"
               className="block text-xs font-medium text-stone-600 mb-1"
             >
               Description
             </label>
             <input
-              id="it-desc"
-              placeholder="Optional — what this type means"
+              id="pc-desc"
+              placeholder="Optional — what this category covers"
               value={draft.description}
               onChange={(e) =>
                 setDraft({ ...draft, description: e.target.value })
@@ -269,21 +288,21 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
             <button
               onClick={create}
               disabled={
-                !draft.code.trim() || !draft.label.trim() || creating
+                !draft.code.trim() || !draft.name.trim() || creating
               }
               className="bg-qc-600 hover:bg-qc-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {creating ? 'Saving…' : 'Add type'}
+              {creating ? 'Saving…' : 'Add category'}
             </button>
             <ImportSpreadsheetButton
               label="Import CSV / Excel"
-              endpoint="/inspection-types/bulk-import"
-              templateName="inspection-types-template.csv"
+              endpoint="/product-categories/bulk-import"
+              templateName="product-categories-template.csv"
               templateCsv={
-                'code,label,description,isActive\n' +
-                'INLINE,Inline inspection,Inspection performed during production,true\n' +
-                'FINAL,Final inspection,Pre-shipment inspection of finished lot,true\n' +
-                'DUPRO,During Production,Dupro check mid-run,true\n'
+                'code,name,description,isActive\n' +
+                'APPAREL,Apparel,Clothing, garments, accessories,true\n' +
+                'FOOTWEAR,Footwear,Shoes, boots, slippers,true\n' +
+                'ELECTRONICS,Electronics,Consumer electronics,true\n'
               }
               onImported={() => window.location.reload()}
             />
@@ -309,18 +328,18 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-[200px]">
             <label
-              htmlFor="it-search"
+              htmlFor="pc-search"
               className="block text-xs text-stone-500 mb-1"
             >
               Search
             </label>
             <div className="relative">
               <input
-                id="it-search"
+                id="pc-search"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Code, label, or description…"
+                placeholder="Code, name, or description…"
                 className="w-full px-2 py-1.5 pr-7 border rounded text-sm"
               />
               {search && (
@@ -338,13 +357,13 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
 
           <div>
             <label
-              htmlFor="it-status"
+              htmlFor="pc-status"
               className="block text-xs text-stone-500 mb-1"
             >
               Status
             </label>
             <select
-              id="it-status"
+              id="pc-status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="px-2 py-1.5 border rounded text-sm"
@@ -356,19 +375,19 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
           </div>
 
           <div>
-            <label htmlFor="it-sort" className="block text-xs text-stone-500 mb-1">
+            <label htmlFor="pc-sort" className="block text-xs text-stone-500 mb-1">
               Sort by
             </label>
             <select
-              id="it-sort"
+              id="pc-sort"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
               className="px-2 py-1.5 border rounded text-sm"
             >
               <option value="CODE_ASC">Code A → Z</option>
               <option value="CODE_DESC">Code Z → A</option>
-              <option value="LABEL_ASC">Label A → Z</option>
-              <option value="LABEL_DESC">Label Z → A</option>
+              <option value="NAME_ASC">Name A → Z</option>
+              <option value="NAME_DESC">Name Z → A</option>
               <option value="STATUS_ASC">Status (inactive → active)</option>
               <option value="STATUS_DESC">Status (active → inactive)</option>
             </select>
@@ -398,7 +417,7 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
             <SortHeader label="Code" sortValue="CODE_ASC" />
           </div>
           <div className="flex-1 min-w-[180px]">
-            <SortHeader label="Label" sortValue="LABEL_ASC" />
+            <SortHeader label="Name" sortValue="NAME_ASC" />
           </div>
           <div className="w-32">
             <SortHeader label="Status" sortValue="STATUS_ASC" />
@@ -410,29 +429,29 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
           {visible.length === 0 && (
             <div className="p-8 text-center text-stone-400 text-sm">
               {list.length === 0
-                ? 'No inspection types yet.'
-                : 'No inspection types match the current filter.'}
+                ? 'No product categories yet.'
+                : 'No product categories match the current filter.'}
             </div>
           )}
-          {visible.map((t) =>
-            editingId === t.id ? (
+          {visible.map((p) =>
+            editingId === p.id ? (
               <EditRow
-                key={t.id}
-                t={t}
+                key={p.id}
+                p={p}
                 edit={edit}
                 setEdit={setEdit}
                 saving={editSaving}
                 error={editError}
-                onSave={() => saveEdit(t)}
+                onSave={() => saveEdit(p)}
                 onCancel={cancelEdit}
               />
             ) : (
               <ReadRow
-                key={t.id}
-                t={t}
-                onEdit={() => startEdit(t)}
-                onDelete={() => remove(t)}
-                onToggle={() => toggleActive(t)}
+                key={p.id}
+                p={p}
+                onEdit={() => startEdit(p)}
+                onDelete={() => remove(p)}
+                onToggle={() => toggleActive(p)}
               />
             ),
           )}
@@ -458,10 +477,10 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
 }
 
 function ActiveToggle({
-  t,
+  p,
   toggle,
 }: {
-  t: InspectionType;
+  p: ProductCategory;
   toggle: () => void;
 }) {
   return (
@@ -469,36 +488,36 @@ function ActiveToggle({
       type="button"
       onClick={toggle}
       className={`text-xs px-2 py-0.5 rounded ${
-        t.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
+        p.isActive ? 'bg-accept-soft text-accept-deep' : 'bg-stone-200 text-stone-600'
       }`}
     >
-      {t.isActive ? 'ACTIVE' : 'INACTIVE'}
+      {p.isActive ? 'ACTIVE' : 'INACTIVE'}
     </button>
   );
 }
 
 function ReadRow({
-  t,
+  p,
   onEdit,
   onDelete,
   onToggle,
 }: {
-  t: InspectionType;
+  p: ProductCategory;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 text-sm">
-      <div className="w-32 font-mono font-semibold text-stone-800">{t.code}</div>
+      <div className="w-32 font-mono font-semibold text-stone-800">{p.code}</div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-stone-800">{t.label}</div>
-        {t.description && (
-          <div className="text-xs text-stone-500 truncate">{t.description}</div>
+        <div className="font-medium text-stone-800">{p.name}</div>
+        {p.description && (
+          <div className="text-xs text-stone-500 truncate">{p.description}</div>
         )}
       </div>
       <div className="w-32">
-        <ActiveToggle t={t} toggle={onToggle} />
+        <ActiveToggle p={p} toggle={onToggle} />
       </div>
       <div className="w-32 flex justify-end gap-2">
         <button
@@ -521,7 +540,7 @@ function ReadRow({
 }
 
 function EditRow({
-  t,
+  p,
   edit,
   setEdit,
   saving,
@@ -529,9 +548,9 @@ function EditRow({
   onSave,
   onCancel,
 }: {
-  t: InspectionType;
-  edit: { label: string; description: string; isActive: boolean };
-  setEdit: (v: { label: string; description: string; isActive: boolean }) => void;
+  p: ProductCategory;
+  edit: { name: string; description: string; isActive: boolean };
+  setEdit: (v: { name: string; description: string; isActive: boolean }) => void;
   saving: boolean;
   error: string | null;
   onSave: () => void;
@@ -540,12 +559,12 @@ function EditRow({
   return (
     <div className="px-4 py-3 bg-qc-soft/40 border-l-4 border-qc-500">
       <div className="flex items-center gap-3 text-sm">
-        <div className="w-32 font-mono font-semibold text-stone-800">{t.code}</div>
+        <div className="w-32 font-mono font-semibold text-stone-800">{p.code}</div>
         <div className="flex-1 min-w-0 space-y-2">
           <input
-            value={edit.label}
-            onChange={(e) => setEdit({ ...edit, label: e.target.value })}
-            placeholder="Label"
+            value={edit.name}
+            onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+            placeholder="Name"
             className="w-full px-2 py-1 border rounded text-sm"
             maxLength={255}
           />
@@ -569,19 +588,18 @@ function EditRow({
         <div className="w-32 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="text-xs px-2 py-1 rounded border border-stone-300 hover:bg-white"
+            onClick={onSave}
+            disabled={saving || !edit.name.trim()}
+            className="text-xs px-2 py-1 rounded bg-qc-600 text-white hover:bg-qc-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Cancel
+            {saving ? 'Saving…' : 'Save'}
           </button>
           <button
             type="button"
-            onClick={onSave}
-            disabled={!edit.label.trim() || saving}
-            className="text-xs px-2 py-1 rounded bg-qc-600 text-white hover:bg-qc-700 disabled:opacity-40"
+            onClick={onCancel}
+            className="text-xs px-2 py-1 rounded border border-stone-300 hover:bg-stone-50"
           >
-            {saving ? 'Saving…' : 'Save'}
+            Cancel
           </button>
         </div>
       </div>

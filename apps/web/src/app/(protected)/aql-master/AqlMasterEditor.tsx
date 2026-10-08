@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import ImportSpreadsheetButton from '@/components/ImportSpreadsheetButton';
 import { clientApiFetch } from '@/lib/api-client';
 
 /** Send the user back to /login when the API rejects the request as 401. */
