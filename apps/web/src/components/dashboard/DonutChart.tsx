@@ -21,10 +21,10 @@ export type DonutSlice = {
 
 type Props = {
   data: DonutSlice[];
-  /** Diameter in px. Default 160. */
+  /** Diameter in px. Default 148. */
   size?: number;
   /** Stroke-equivalent ring width as a fraction of the radius.
-   *  Default 0.22. */
+   *  Default 0.17. */
   thicknessRatio?: number;
   /** Centre label, e.g. "88%". If omitted, total is shown. */
   centerLabel?: string;
@@ -35,13 +35,21 @@ type Props = {
 
 export default function DonutChart({
   data,
-  size = 160,
-  thicknessRatio = 0.22,
+  size = 148,
+  thicknessRatio = 0.17,
   centerLabel,
   centerSubLabel,
   className = '',
 }: Props) {
   const total = data.reduce((s, d) => s + d.value, 0);
+  const displayCenterLabel = centerLabel ?? total.toString();
+  // Long totals/percentages should never overwhelm the centre of the chart.
+  // Scale down progressively while keeping ordinary two/three-digit values
+  // at a restrained dashboard-display size.
+  const centerFontSize = Math.max(
+    size * 0.105,
+    Math.min(size * 0.145, size * 0.62 / Math.max(displayCenterLabel.length, 3)),
+  );
   const cx = size / 2;
   const cy = size / 2;
   const radius = size / 2 - size * thicknessRatio / 2;
@@ -69,20 +77,25 @@ export default function DonutChart({
   });
 
   return (
-    <div className={`flex items-center gap-5 ${className}`}>
+    <div
+      className={`flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6 ${className}`}
+    >
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="shrink-0"
-        aria-label="Donut chart"
+        className="shrink-0 overflow-visible"
+        role="img"
+        aria-label={`Donut chart showing ${displayCenterLabel}${
+          centerSubLabel ? ` ${centerSubLabel}` : ''
+        }`}
       >
         <circle
           cx={cx}
           cy={cy}
           r={radius}
           fill="none"
-          stroke="rgb(241 245 249)"
+          stroke="rgb(231 229 228)"
           strokeWidth={size * thicknessRatio}
         />
         {slices.map((seg) =>
@@ -91,49 +104,57 @@ export default function DonutChart({
               key={seg.label}
               d={seg.path}
               fill={seg.color}
+              stroke="white"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
             />
           ) : null,
         )}
         {/* Centre labels */}
         <text
           x={cx}
-          y={cy - 4}
+          y={centerSubLabel ? cy - 7 : cy}
           textAnchor="middle"
-          className="fill-stone-900 font-bold"
-          style={{ fontSize: size * 0.18 }}
+          dominantBaseline="middle"
+          className="fill-stone-900 font-semibold"
+          style={{ fontSize: centerFontSize, fontVariantNumeric: 'tabular-nums' }}
         >
-          {centerLabel ?? total.toString()}
+          {displayCenterLabel}
         </text>
         {centerSubLabel && (
           <text
             x={cx}
-            y={cy + 16}
+            y={cy + 13}
             textAnchor="middle"
-            className="fill-stone-500"
-            style={{ fontSize: size * 0.085 }}
+            dominantBaseline="middle"
+            className="fill-stone-500 font-medium"
+            style={{
+              fontSize: size * 0.072,
+              letterSpacing: '0.04em',
+            }}
           >
             {centerSubLabel}
           </text>
         )}
       </svg>
       {/* Legend */}
-      <ul className="flex-1 min-w-0 space-y-1.5 text-sm">
+      <ul className="w-full min-w-0 flex-1 space-y-2 text-[13px] sm:w-auto">
         {slices.map((seg) => (
           <li
             key={seg.label}
-            className="flex items-center gap-2 text-stone-700"
+            className="flex items-center gap-2.5 text-stone-600"
           >
             <span
               aria-hidden="true"
-              className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
+              className="inline-block h-2 w-2 shrink-0 rounded-full ring-2 ring-white"
               style={{ backgroundColor: seg.color }}
             />
             <span className="flex-1 truncate">{seg.label}</span>
-            <span className="font-mono tabular-nums text-stone-900">
+            <span className="font-semibold tabular-nums text-stone-800">
               {seg.value}
             </span>
             {total > 0 && (
-              <span className="text-stone-400 text-xs w-10 text-right tabular-nums">
+              <span className="w-9 text-right text-[11px] tabular-nums text-stone-400">
                 {Math.round(seg.fraction * 100)}%
               </span>
             )}

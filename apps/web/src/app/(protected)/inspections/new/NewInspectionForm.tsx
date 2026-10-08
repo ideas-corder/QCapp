@@ -318,15 +318,15 @@ export default function NewInspectionForm({
   };
   const [evalChecks, setEvalChecks] = useState<EvalCheck[]>(() => [
     { key: 'INLINE_INSPECTION_DONE', label: 'Inline Inspection Done', answer: '', photos: [] },
-    { key: 'PP_SAMPLE_APPROVED', label: 'PP Sample Approved', answer: '', photos: [] },
-    { key: 'IC_AVAILABLE', label: 'IC Available', answer: '', photos: [] },
-    { key: 'BARCODE', label: 'Barcode', answer: '', photos: [] },
-    { key: 'CARE_LABEL', label: 'Care Label', answer: '', photos: [] },
-    { key: 'PACKING_LIST_AVAILABLE', label: 'Packing List Available', answer: '', photos: [] },
-    { key: 'PO_SAME', label: 'PO Same', answer: '', photos: [] },
-    { key: 'ATTACH_MEASUREMENT_SHEET', label: 'Attach Measurement Sheet', answer: '', photos: [] },
-    { key: 'STORAGE_OK', label: 'Storage OK', answer: '', photos: [] },
-    { key: 'TEST_REPORT_AVAILABLE', label: 'Test report available', answer: '', photos: [] },
+    { key: 'PP_SAMPLE_APPROVED', label: 'PP Sample Approved', answer: 'NO', photos: [] },
+    { key: 'IC_AVAILABLE', label: 'IC Available', answer: 'NO', photos: [] },
+    { key: 'BARCODE', label: 'Barcode', answer: 'NO', photos: [] },
+    { key: 'CARE_LABEL', label: 'Care Label', answer: 'NO', photos: [] },
+    { key: 'PACKING_LIST_AVAILABLE', label: 'Packing List Available', answer: 'NO', photos: [] },
+    { key: 'PO_SAME', label: 'PO Same', answer: 'NO', photos: [] },
+    { key: 'ATTACH_MEASUREMENT_SHEET', label: 'Attach Measurement Sheet', answer: 'NO', photos: [] },
+    { key: 'STORAGE_OK', label: 'Storage OK', answer: 'NO', photos: [] },
+    { key: 'TEST_REPORT_AVAILABLE', label: 'Test report available', answer: 'NO', photos: [] },
   ]);
   function setEvalAnswer(idx: number, answer: 'YES' | 'NO') {
     setEvalChecks((prev) => {

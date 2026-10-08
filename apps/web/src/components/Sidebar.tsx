@@ -125,7 +125,7 @@ export default function Sidebar({ caller }: { caller: CallerIdentity | null }) {
           </p>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-3 overflow-y-auto">
+      <nav className="sidebar-scrollbar flex-1 overflow-y-auto px-3 py-3">
         {groups.map((g) => (
           <div key={g.label} className="mb-4">
             <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-sidebar-muted">

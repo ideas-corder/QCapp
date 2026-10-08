@@ -7,8 +7,8 @@ export default function LoginPage() {
   const router = useRouter();
   const search = useSearchParams();
   const sessionExpired = search?.get('expired') === '1';
-  const [email, setEmail] = useState('admin@qc.local');
-  const [password, setPassword] = useState('Admin@123');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

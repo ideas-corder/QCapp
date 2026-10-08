@@ -82,3 +82,26 @@ body {
 .qc-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgb(168 162 158); /* stone-400 */
 }
+
+/* Sidebar-only scrollbar. It follows the runtime sidebar theme tokens so
+   custom themes retain a quiet, integrated navigation surface. */
+.sidebar-scrollbar {
+  scrollbar-color: rgb(var(--sidebar-text-muted) / 0.45) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--sidebar-text-muted) / 0.38);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--sidebar-text-muted) / 0.7);
+}

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
+import * as path from 'path';
 import { ReportStorageService } from './report-storage.service';
 import { calculateSampling } from '../common/aql';
+
+const BRAND_ICON_PATH = path.join(__dirname, 'assets', 'logo-icon.png');
 
 /**
  * Final Inspection Report — the canonical, multi-page PDF generated
@@ -392,13 +395,30 @@ export class DetailReportBuilder {
     const iconSize = 36;
     const iconX = left + 12;
     const iconY = bandY + (bandH - iconSize) / 2;
-    const cell = iconSize / 2;
-    doc.roundedRect(iconX, iconY, iconSize, iconSize, 4)
-      .lineWidth(1.2).strokeColor('#ffffff').fillAndStroke('#000000', '#ffffff');
-    doc.rect(iconX + 3, iconY + 3, cell - 6, cell - 6).fill(C.lime);
-    doc.rect(iconX + cell + 3, iconY + 3, cell - 6, cell - 6).fill(C.lime);
-    doc.rect(iconX + 3, iconY + cell + 3, cell - 6, cell - 6).fill(C.lime);
-    doc.rect(iconX + cell + 3, iconY + cell + 3, cell - 6, cell - 6).fill(C.lime);
+    try {
+      doc.image(BRAND_ICON_PATH, iconX, iconY, {
+        fit: [iconSize, iconSize],
+        align: 'center',
+        valign: 'center',
+      });
+    } catch (error) {
+      // Keep report generation resilient if a deployment omits the asset.
+      this.logger.warn(
+        `Unable to load report logo at ${BRAND_ICON_PATH}: ${String(error)}`,
+      );
+      const cell = iconSize / 2;
+      doc
+        .roundedRect(iconX, iconY, iconSize, iconSize, 4)
+        .lineWidth(1.2)
+        .strokeColor('#ffffff')
+        .fillAndStroke('#000000', '#ffffff');
+      doc.rect(iconX + 3, iconY + 3, cell - 6, cell - 6).fill(C.lime);
+      doc.rect(iconX + cell + 3, iconY + 3, cell - 6, cell - 6).fill(C.lime);
+      doc.rect(iconX + 3, iconY + cell + 3, cell - 6, cell - 6).fill(C.lime);
+      doc
+        .rect(iconX + cell + 3, iconY + cell + 3, cell - 6, cell - 6)
+        .fill(C.lime);
+    }
 
     const textX = iconX + iconSize + 12;
     doc.font(FONT_BOLD).fontSize(22).fillColor('#ffffff');
