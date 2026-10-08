@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import LayoutSwitcher from '@/components/LayoutSwitcher';
-import { getCallerFromCookie, type UserRole } from '@/lib/auth';
+import type { UserRole } from '@/lib/auth';
 import { getUiLayoutFromCookie } from '@/lib/preferences';
+import { requireCurrentUser } from '@/lib/server-session';
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: 'Admin',
@@ -16,13 +16,12 @@ const ROLE_BADGE_STYLE: Record<UserRole, string> = {
   viewer: 'bg-stone-100 text-stone-700 border-stone-200',
 };
 
-export default function ProtectedLayout({
+export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const caller = getCallerFromCookie();
-  if (!caller) redirect('/login?expired=1');
+  const caller = await requireCurrentUser();
 
   const uiLayout = getUiLayoutFromCookie();
 

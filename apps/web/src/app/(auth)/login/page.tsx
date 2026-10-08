@@ -1,10 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { apiLogin, apiLoginMfa } from '@/lib/api-client';
 
 export default function LoginPage() {
-  const router = useRouter();
   const search = useSearchParams();
   const sessionExpired = search?.get('expired') === '1';
   const [email, setEmail] = useState<string>('');
@@ -30,21 +29,13 @@ export default function LoginPage() {
           return;
         }
         await setTokens(r.accessToken, r.refreshToken);
-        // router.refresh() forces the root layout to re-render against
-        // the new cookie. Without it, `cookies().get(ACCESS_COOKIE)`
-        // in layout.tsx still returns `undefined` (stale SSR snapshot)
-        // and the whole `{token ? <Sidebar/> : children}` branch
-        // falls into `children`, leaving the page rendered without
-        // the sidebar / role badge / header. The user then has to
-        // click the URL bar (which triggers a hard navigation) to
-        // see the panel. router.refresh() prevents that.
-        router.refresh();
-        router.push(landingPath(r.user));
+        // Use a hard navigation so Next's client router cannot reuse a
+        // protected-route redirect cached before these cookies were set.
+        window.location.replace(landingPath(r.user));
       } else {
         const r = await apiLoginMfa(mfaToken, totpCode);
         await setTokens(r.accessToken, r.refreshToken);
-        router.refresh();
-        router.push(landingPath(r.user));
+        window.location.replace(landingPath(r.user));
       }
     } catch (e: any) {
       setError(e.message ?? 'Login failed');
