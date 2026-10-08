@@ -1,16 +1,9 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import { clientApiFetch } from '@/lib/api-client';
 
 /** Send the user back to /login when the API rejects the request as 401. */
-function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
-  if (status === 401) {
-    router.replace('/login?expired=1');
-    return true;
-  }
-  return false;
-}
 
 /** A single AQL sampling-plan bucket. */
 interface AqlBucket {
@@ -57,7 +50,6 @@ export default function AqlMasterEditor({
 }: {
   initial: AqlBucket[];
 }) {
-  const router = useRouter();
   const [list, setList] = useState<AqlBucket[]>(initial);
   const [draft, setDraft] = useState({
     minQty: '',
@@ -141,7 +133,7 @@ export default function AqlMasterEditor({
     try {
       const autoDesc = `Lot size ${minQty.toLocaleString()}\u2013${maxQty.toLocaleString()}`;
       const description = draft.description.trim() || autoDesc;
-      const res = await fetch('/api/backend/aql-master', {
+      const res = await clientApiFetch('/aql-master', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +146,6 @@ export default function AqlMasterEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -220,7 +211,7 @@ export default function AqlMasterEditor({
     try {
       const autoDesc = `Lot size ${minQty.toLocaleString()}\u2013${maxQty.toLocaleString()}`;
       const description = edit.description.trim() || autoDesc;
-      const res = await fetch(`/api/backend/aql-master/${b.id}`, {
+      const res = await clientApiFetch(`/aql-master/${b.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,7 +224,6 @@ export default function AqlMasterEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -254,19 +244,18 @@ export default function AqlMasterEditor({
       )
     )
       return;
-    const res = await fetch(`/api/backend/aql-master/${b.id}`, {
+    const res = await clientApiFetch(`/aql-master/${b.id}`, {
       method: 'DELETE',
     });
     if (res.ok) setList(list.filter((x) => x.id !== b.id));
     else {
       const txt = await res.text();
-      if (handleAuthError(res.status, router)) return;
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
   async function toggleActive(b: AqlBucket) {
-    const res = await fetch(`/api/backend/aql-master/${b.id}`, {
+    const res = await clientApiFetch(`/aql-master/${b.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !b.isActive }),
@@ -274,8 +263,6 @@ export default function AqlMasterEditor({
     if (res.ok) {
       const updated = (await res.json()) as AqlBucket;
       setList(list.map((x) => (x.id === b.id ? updated : x)));
-    } else if (res.status === 401) {
-      handleAuthError(res.status, router);
     }
   }
 

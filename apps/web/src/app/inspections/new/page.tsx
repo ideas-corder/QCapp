@@ -1,10 +1,7 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import NewInspectionForm from './NewInspectionForm';
 import { SetupMastersButton } from './SetupMastersButton';
 import { getUiLayoutFromCookie } from '@/lib/preferences';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+import { apiFetchOptional } from '@/lib/api';
 
 interface ProductCategory {
   id: string;
@@ -52,52 +49,44 @@ interface AqlMaster {
   isActive: boolean;
 }
 
-async function fetchOptions(token: string) {
-  const headers = { Authorization: `Bearer ${token}` };
+async function fetchOptions() {
+  const returnTo = '/inspections/new';
   const [
-    catsRes,
-    prodCatsRes,
-    supsRes,
-    inspsRes,
-    typesRes,
-    aqlMasterRes,
+    cats,
+    prodCats,
+    sups,
+    insps,
+    types,
+    aqlMaster,
   ] = await Promise.all([
-    fetch(`${API}/categories`, { headers, cache: 'no-store' }),
-    fetch(`${API}/product-categories?activeOnly=true`, {
-      headers,
-      cache: 'no-store',
-    }),
-    fetch(`${API}/suppliers`, { headers, cache: 'no-store' }),
-    fetch(`${API}/inspectors?activeOnly=true`, { headers, cache: 'no-store' }),
-    fetch(`${API}/inspection-types?activeOnly=true`, {
-      headers,
-      cache: 'no-store',
-    }),
-    fetch(`${API}/aql-master?activeOnly=true`, {
-      headers,
-      cache: 'no-store',
-    }),
+    apiFetchOptional<Category[]>('/categories', {}, returnTo),
+    apiFetchOptional<ProductCategory[]>(
+      '/product-categories?activeOnly=true',
+      {},
+      returnTo,
+    ),
+    apiFetchOptional<Supplier[]>('/suppliers', {}, returnTo),
+    apiFetchOptional<Inspector[]>('/inspectors?activeOnly=true', {}, returnTo),
+    apiFetchOptional<InspectionType[]>(
+      '/inspection-types?activeOnly=true',
+      {},
+      returnTo,
+    ),
+    apiFetchOptional<AqlMaster[]>('/aql-master?activeOnly=true', {}, returnTo),
   ]);
-  const cats = catsRes.ok ? ((await catsRes.json()) as Category[]) : [];
-  const prodCats = prodCatsRes.ok
-    ? ((await prodCatsRes.json()) as ProductCategory[])
-    : [];
-  const sups = supsRes.ok ? ((await supsRes.json()) as Supplier[]) : [];
-  const insps = inspsRes.ok ? ((await inspsRes.json()) as Inspector[]) : [];
-  const types = typesRes.ok ? ((await typesRes.json()) as InspectionType[]) : [];
-  const aqlMaster = aqlMasterRes.ok
-    ? ((await aqlMasterRes.json()) as AqlMaster[]).filter((m) => m.isActive)
-    : [];
-  return { cats, prodCats, sups, insps, types, aqlMaster };
+  return {
+    cats: cats ?? [],
+    prodCats: prodCats ?? [],
+    sups: sups ?? [],
+    insps: insps ?? [],
+    types: types ?? [],
+    aqlMaster: (aqlMaster ?? []).filter((m) => m.isActive),
+  };
 }
 
 export default async function NewInspectionPage() {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) redirect('/login?expired=1');
-
-  const { cats, prodCats, sups, insps, types, aqlMaster } = await fetchOptions(
-    token,
-  );
+  const { cats, prodCats, sups, insps, types, aqlMaster } =
+    await fetchOptions();
   const activeCategories = cats.filter((c) => c.isActive);
 
   // Collect the masters that have zero active rows. These are required

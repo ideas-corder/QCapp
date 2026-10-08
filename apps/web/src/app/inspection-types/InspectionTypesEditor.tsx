@@ -1,19 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
-
-/**
- * Send the user back to /login when the API rejects the request as 401.
- * Used by every editor fetch so a stale session is impossible to miss.
- */
-function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
-  if (status === 401) {
-    router.replace('/login?expired=1');
-    return true;
-  }
-  return false;
-}
+import { clientApiFetch } from '@/lib/api-client';
 
 interface InspectionType {
   id: string;
@@ -26,7 +14,6 @@ interface InspectionType {
 type SortKey = 'CODE_ASC' | 'CODE_DESC' | 'LABEL_ASC' | 'LABEL_DESC' | 'STATUS_ASC' | 'STATUS_DESC';
 
 export default function InspectionTypesEditor({ initial }: { initial: InspectionType[] }) {
-  const router = useRouter();
   const [list, setList] = useState<InspectionType[]>(initial);
   const [draft, setDraft] = useState({ code: '', label: '', description: '' });
   const [creating, setCreating] = useState(false);
@@ -50,7 +37,7 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await fetch('/api/backend/inspection-types', {
+      const res = await clientApiFetch('/inspection-types', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,7 +49,6 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -97,7 +83,7 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await fetch(`/api/backend/inspection-types/${t.id}`, {
+      const res = await clientApiFetch(`/inspection-types/${t.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,7 +94,6 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -125,19 +110,18 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
   async function remove(t: InspectionType) {
     if (!confirm(`Delete inspection type "${t.code}"? This cannot be undone.`))
       return;
-    const res = await fetch(`/api/backend/inspection-types/${t.id}`, {
+    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
       method: 'DELETE',
     });
     if (res.ok) setList(list.filter((x) => x.id !== t.id));
     else {
       const txt = await res.text();
-      if (handleAuthError(res.status, router)) return;
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
   async function toggleActive(t: InspectionType) {
-    const res = await fetch(`/api/backend/inspection-types/${t.id}`, {
+    const res = await clientApiFetch(`/inspection-types/${t.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !t.isActive }),
@@ -145,8 +129,6 @@ export default function InspectionTypesEditor({ initial }: { initial: Inspection
     if (res.ok) {
       const updated = (await res.json()) as InspectionType;
       setList(list.map((x) => (x.id === t.id ? updated : x)));
-    } else if (res.status === 401) {
-      handleAuthError(res.status, router);
     }
   }
 

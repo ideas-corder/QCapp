@@ -1,14 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
-  if (status === 401) {
-    router.replace('/login?expired=1');
-    return true;
-  }
-  return false;
-}
+import { clientApiFetch } from '@/lib/api-client';
 
 export interface UserView {
   id: string;
@@ -70,7 +62,6 @@ export default function UsersEditor({
   initial: UserView[];
   caller: Caller;
 }) {
-  const router = useRouter();
   const [list, setList] = useState<UserView[]>(initial);
   const [draft, setDraft] = useState({
     email: '',
@@ -179,7 +170,7 @@ export default function UsersEditor({
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await fetch('/api/backend/users', {
+      const res = await clientApiFetch('/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -192,7 +183,6 @@ export default function UsersEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setCreateError(prettyApiError(res.status, txt));
         return;
       }
@@ -236,7 +226,7 @@ export default function UsersEditor({
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await fetch(`/api/backend/users/${u.id}`, {
+      const res = await clientApiFetch(`/users/${u.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +238,6 @@ export default function UsersEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setEditError(prettyApiError(res.status, txt));
         return;
       }
@@ -271,7 +260,7 @@ export default function UsersEditor({
     )) {
       return;
     }
-    const res = await fetch(`/api/backend/users/${u.id}`, {
+    const res = await clientApiFetch(`/users/${u.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: next }),
@@ -279,8 +268,6 @@ export default function UsersEditor({
     if (res.ok) {
       const updated = (await res.json()) as UserView;
       setList(list.map((x) => (x.id === u.id ? updated : x)));
-    } else if (res.status === 401) {
-      handleAuthError(res.status, router);
     } else {
       const txt = await res.text();
       alert(`Failed (${res.status}): ${txt.slice(0, 200)}`);
@@ -316,14 +303,13 @@ export default function UsersEditor({
     setResetError(null);
     setResetOk(false);
     try {
-      const res = await fetch(`/api/backend/users/${u.id}/reset-password`, {
+      const res = await clientApiFetch(`/users/${u.id}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newPassword: resetPwd }),
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setResetError(prettyApiError(res.status, txt));
         return;
       }

@@ -1,19 +1,12 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import { clientApiFetch } from '@/lib/api-client';
 
 /**
  * Send the user back to /login when the API rejects the request as 401.
  * Used by every editor fetch so a stale session is impossible to miss.
  */
-function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
-  if (status === 401) {
-    router.replace('/login?expired=1');
-    return true;
-  }
-  return false;
-}
 
 interface ProductCategory {
   id: string;
@@ -36,7 +29,6 @@ export default function ProductCategoriesEditor({
 }: {
   initial: ProductCategory[];
 }) {
-  const router = useRouter();
   const [list, setList] = useState<ProductCategory[]>(initial);
   const [draft, setDraft] = useState({ code: '', name: '', description: '' });
   const [creating, setCreating] = useState(false);
@@ -60,7 +52,7 @@ export default function ProductCategoriesEditor({
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await fetch('/api/backend/product-categories', {
+      const res = await clientApiFetch('/product-categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,7 +64,6 @@ export default function ProductCategoriesEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -107,7 +98,7 @@ export default function ProductCategoriesEditor({
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await fetch(`/api/backend/product-categories/${p.id}`, {
+      const res = await clientApiFetch(`/product-categories/${p.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -118,7 +109,6 @@ export default function ProductCategoriesEditor({
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -139,19 +129,18 @@ export default function ProductCategoriesEditor({
       )
     )
       return;
-    const res = await fetch(`/api/backend/product-categories/${p.id}`, {
+    const res = await clientApiFetch(`/product-categories/${p.id}`, {
       method: 'DELETE',
     });
     if (res.ok) setList(list.filter((x) => x.id !== p.id));
     else {
       const txt = await res.text();
-      if (handleAuthError(res.status, router)) return;
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
   async function toggleActive(p: ProductCategory) {
-    const res = await fetch(`/api/backend/product-categories/${p.id}`, {
+    const res = await clientApiFetch(`/product-categories/${p.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !p.isActive }),
@@ -159,8 +148,6 @@ export default function ProductCategoriesEditor({
     if (res.ok) {
       const updated = (await res.json()) as ProductCategory;
       setList(list.map((x) => (x.id === p.id ? updated : x)));
-    } else if (res.status === 401) {
-      handleAuthError(res.status, router);
     }
   }
 

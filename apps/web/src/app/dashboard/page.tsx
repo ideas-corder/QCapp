@@ -12,7 +12,6 @@
  * server component (RSC); the API call happens in `fetchDashboardStats`
  * using the caller's cookie.
  */
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
   fetchDashboardStats,
@@ -26,9 +25,6 @@ import { fmtDateTime, fmtRelative } from '@/components/dashboard/format';
 export const dynamic = 'force-dynamic';
 
 export default async function ExecutiveDashboard() {
-  const token = (await import('next/headers')).cookies().get('qc_access')?.value;
-  if (!token) redirect('/login?expired=1');
-
   const result = await fetchDashboardStats();
   if (!result.ok) {
     return <ErrorState error={result.error} />;

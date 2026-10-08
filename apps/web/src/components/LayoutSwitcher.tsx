@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UI_LAYOUTS, isUiLayout, type UiLayout } from '@/lib/uiLayout';
+import { clientApiFetch } from '@/lib/api-client';
 
 /**
  * Topbar dropdown that lets the user switch the New Inspection form
@@ -55,7 +56,7 @@ export default function LayoutSwitcher({ current }: { current: UiLayout }) {
     setOpen(false);
     // 3) PUT to the backend so the choice survives across devices.
     try {
-      const r = await fetch('/api/backend/auth/preferences', {
+      const r = await clientApiFetch('/auth/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uiLayout: next }),

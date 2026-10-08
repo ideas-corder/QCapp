@@ -152,6 +152,22 @@ async function forward(req: NextRequest, ctx: { params: { path: string[] } }) {
     }
   }
 
+  // Direct links (PDFs/images opened in a tab) cannot run the client fetch
+  // wrapper. If their refresh attempt still ends in 401, turn the navigation
+  // into a login redirect instead of displaying a raw JSON error document.
+  if (
+    upstream.status === 401 &&
+    req.headers.get('sec-fetch-mode') === 'navigate'
+  ) {
+    const login = NextResponse.redirect(
+      new URL('/login?expired=1', req.url),
+      303,
+    );
+    login.cookies.set('qc_access', '', { path: '/', maxAge: 0 });
+    login.cookies.set('qc_refresh', '', { path: '/', maxAge: 0 });
+    return login;
+  }
+
   return new NextResponse(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,

@@ -102,7 +102,7 @@ export default function Sidebar({ caller }: { caller: CallerIdentity | null }) {
   }
 
   return (
-    <aside className="w-64 bg-sidebar text-sidebar-text flex flex-col">
+    <aside className="sticky top-0 self-start h-screen w-64 shrink-0 bg-sidebar text-sidebar-text flex flex-col">
       <div className="px-5 py-5 border-b border-sidebar-border flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

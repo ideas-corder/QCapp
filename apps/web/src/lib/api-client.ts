@@ -2,6 +2,29 @@
 const API = '/api/backend';
 
 /**
+ * Shared browser-side request path. The Next.js backend proxy performs the
+ * refresh-and-retry. A 401 returned from it is therefore final: refresh was
+ * unavailable or failed, so clear the session and send the user to login.
+ */
+export async function clientApiFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const url = path.startsWith(API) ? path : `${API}${path}`;
+  const res = await fetch(url, { ...init, credentials: 'same-origin' });
+
+  if (res.status === 401 && typeof window !== 'undefined') {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    }).catch(() => undefined);
+    window.location.replace('/login?expired=1');
+  }
+
+  return res;
+}
+
+/**
  * Translate an API error body into a short, user-friendly sentence.
  *
  * NestJS + class-validator responses look like:

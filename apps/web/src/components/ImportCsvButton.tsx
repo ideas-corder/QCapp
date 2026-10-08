@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { clientApiFetch } from '@/lib/api-client';
 
 export type ImportResult = {
   created: number;
@@ -91,7 +92,7 @@ export default function ImportCsvButton({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch(`/api/backend${endpoint}`, {
+      const res = await clientApiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ csv }),

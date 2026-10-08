@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { clientApiFetch } from '@/lib/api-client';
 import InspectionsTable from './InspectionsTable';
 import { type Inspection, COLUMNS } from './columns';
 import {
@@ -282,7 +283,7 @@ export default function InspectionsGrid({
   }
 
   async function onSaveAs(name: string) {
-    const res = await fetch('/api/backend/inspection-views', {
+    const res = await clientApiFetch('/inspection-views', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -311,7 +312,7 @@ export default function InspectionsGrid({
   }
 
   async function onDeleteView(v: SavedView) {
-    const res = await fetch(`/api/backend/inspection-views/${v.id}`, {
+    const res = await clientApiFetch(`/inspection-views/${v.id}`, {
       method: 'DELETE',
       credentials: 'same-origin',
     });

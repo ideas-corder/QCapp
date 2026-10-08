@@ -10,9 +10,7 @@
  * The page reads `supplierLeaderboard` directly from the dashboard
  * endpoint, so no separate supplier query is needed.
  */
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
 import { fetchDashboardStats } from '@/components/dashboard/fetchDashboard';
 import KpiTile from '@/components/dashboard/KpiTile';
 import Panel from '@/components/dashboard/Panel';
@@ -24,10 +22,7 @@ import { fmtRelative } from '@/components/dashboard/format';
 export const dynamic = 'force-dynamic';
 
 export default async function VendorPerformancePage() {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) redirect('/login?expired=1');
-
-  const result = await fetchDashboardStats();
+  const result = await fetchDashboardStats('/dashboard/performance');
   if (!result.ok) {
     return <ErrorState error={result.error} />;
   }

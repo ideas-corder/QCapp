@@ -1,18 +1,10 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { apiFetchOptional } from '@/lib/api';
 import InspectionsGrid from './InspectionsGrid';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
-
 async function fetchInspections(params: URLSearchParams) {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) return null;
-  const res = await fetch(`${API}/inspections?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  return res.json();
+  const query = params.toString();
+  const path = `/inspections${query ? `?${query}` : ''}`;
+  return apiFetchOptional<any>(path, {}, path);
 }
 
 /**
@@ -29,9 +21,6 @@ export default async function InspectionsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) redirect('/login?expired=1');
-
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(searchParams)) {
     if (typeof v === 'string' && v) params.set(k, v);

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { clientApiFetch } from '@/lib/api-client';
 
 interface Category {
   id: string;
@@ -945,7 +946,7 @@ export default function NewInspectionForm({
           signedAt: new Date().toISOString(),
         })),
       };
-      const res = await fetch('/api/backend/inspections', {
+      const res = await clientApiFetch('/inspections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -2796,7 +2797,7 @@ function EvalPhotoButton({
       const fd = new FormData();
       fd.append('file', f);
       try {
-        const res = await fetch('/api/backend/uploads/photo', {
+        const res = await clientApiFetch('/uploads/photo', {
           method: 'POST',
           body: fd,
         });
@@ -2923,7 +2924,7 @@ function PhotoUploader({
       const fd = new FormData();
       fd.append('file', f);
       try {
-        const res = await fetch('/api/backend/uploads/photo', {
+        const res = await clientApiFetch('/uploads/photo', {
           method: 'POST',
           body: fd,
         });

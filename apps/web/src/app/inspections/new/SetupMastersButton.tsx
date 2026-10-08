@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { clientApiFetch } from '@/lib/api-client';
 
 /**
  * One-click auto-seed for the master tables required by the New Inspection
@@ -114,7 +115,7 @@ export function SetupMastersButton({ missing }: { missing: MasterKey[] }) {
     // 1. List all rows (including inactive) so we can find an existing match.
     let list: any[] = [];
     try {
-      const listRes = await fetch(`/api/backend${def.listPath}`, { headers: { 'Content-Type': 'application/json' } });
+      const listRes = await clientApiFetch(def.listPath, { headers: { 'Content-Type': 'application/json' } });
       if (listRes.ok) list = (await listRes.json()) as any[];
     } catch (e: any) {
       return { ok: false, detail: `list failed: ${e?.message ?? 'network'}` };
@@ -125,7 +126,7 @@ export function SetupMastersButton({ missing }: { missing: MasterKey[] }) {
     const existing = list.find((r) => r[def.matchCodeField] === def.matchCode);
     if (existing) {
       try {
-        const upd = await fetch(`/api/backend${def.createPath}/${existing.id}`, {
+        const upd = await clientApiFetch(`${def.createPath}/${existing.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...existing, isActive: true }),
@@ -138,7 +139,7 @@ export function SetupMastersButton({ missing }: { missing: MasterKey[] }) {
     }
     // 4. Otherwise POST a new default row.
     try {
-      const create = await fetch(`/api/backend${def.createPath}`, {
+      const create = await clientApiFetch(def.createPath, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(def.defaults),

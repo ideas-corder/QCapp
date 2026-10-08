@@ -1,10 +1,8 @@
-import { cookies } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { calculateSampling } from '@/lib/aql';
+import { apiFetchOptional } from '@/lib/api';
 import EmailReportButton from './EmailReportButton';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 type AuditReport = {
   id: string;
@@ -64,28 +62,23 @@ function photoLabel(photo: InspectionPhoto, index: number): string {
 }
 
 async function fetchInspection(id: string) {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) return null;
-  const res = await fetch(`${API}/inspections/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return null;
-  return res.json();
+  return apiFetchOptional<any>(
+    `/inspections/${id}`,
+    {},
+    `/inspections/${id}`,
+  );
 }
 
 async function fetchAudit(id: string) {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) return { reports: [], emailEvents: [] };
-  const res = await fetch(`${API}/reports/inspections/${id}/audit`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return { reports: [], emailEvents: [] };
-  return res.json() as Promise<{
-    reports: AuditReport[];
-    emailEvents: AuditEmailEvent[];
-  }>;
+  return (
+    (await apiFetchOptional<{
+      reports: AuditReport[];
+      emailEvents: AuditEmailEvent[];
+    }>(`/reports/inspections/${id}/audit`, {}, `/inspections/${id}`)) ?? {
+      reports: [],
+      emailEvents: [],
+    }
+  );
 }
 
 export default async function InspectionDetail({
@@ -93,7 +86,6 @@ export default async function InspectionDetail({
 }: {
   params: { id: string };
 }) {
-  if (!cookies().get('qc_access')?.value) redirect('/login?expired=1');
   const i = await fetchInspection(params.id);
   if (!i) notFound();
   const audit = await fetchAudit(params.id);

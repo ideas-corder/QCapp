@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { clientApiFetch } from '@/lib/api-client';
 
 type Recipient = {
   name?: string;
@@ -88,7 +89,7 @@ export default function EmailReportButton({
       // httpOnly qc_access cookie is forwarded as Authorization
       // server-side. The proxy lives at apps/web/src/app/api/backend
       // and handles 401-refresh-then-retry automatically.
-      const r = await fetch(`/api/backend/reports/inspections/${inspectionId}/email`, {
+      const r = await clientApiFetch(`/reports/inspections/${inspectionId}/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipients, subject, body }),

@@ -1,15 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ImportSpreadsheetButton from '../../components/ImportSpreadsheetButton';
+import { clientApiFetch } from '@/lib/api-client';
 
-function handleAuthError(status: number, router: ReturnType<typeof useRouter>) {
-  if (status === 401) {
-    router.replace('/login?expired=1');
-    return true;
-  }
-  return false;
-}
 
 interface Inspector {
   id: string;
@@ -30,7 +23,6 @@ type SortKey =
   | 'STATUS_DESC';
 
 export default function InspectorsEditor({ initial }: { initial: Inspector[] }) {
-  const router = useRouter();
   const [list, setList] = useState<Inspector[]>(initial);
   const [draft, setDraft] = useState({
     code: '',
@@ -66,7 +58,7 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     setCreateError(null);
     setCreateOk(false);
     try {
-      const res = await fetch('/api/backend/inspectors', {
+      const res = await clientApiFetch('/inspectors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -80,7 +72,6 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setCreateError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -117,7 +108,7 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await fetch(`/api/backend/inspectors/${i.id}`, {
+      const res = await clientApiFetch(`/inspectors/${i.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,7 +121,6 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
       });
       if (!res.ok) {
         const txt = await res.text();
-        if (handleAuthError(res.status, router)) return;
         setEditError(`Save failed (${res.status}): ${txt.slice(0, 200)}`);
         return;
       }
@@ -151,19 +141,18 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
       )
     )
       return;
-    const res = await fetch(`/api/backend/inspectors/${i.id}`, {
+    const res = await clientApiFetch(`/inspectors/${i.id}`, {
       method: 'DELETE',
     });
     if (res.ok) setList(list.filter((x) => x.id !== i.id));
     else {
       const txt = await res.text();
-      if (handleAuthError(res.status, router)) return;
       alert(`Delete failed (${res.status}): ${txt.slice(0, 200)}`);
     }
   }
 
   async function toggleActive(i: Inspector) {
-    const res = await fetch(`/api/backend/inspectors/${i.id}`, {
+    const res = await clientApiFetch(`/inspectors/${i.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !i.isActive }),
@@ -171,8 +160,6 @@ export default function InspectorsEditor({ initial }: { initial: Inspector[] }) 
     if (res.ok) {
       const updated = (await res.json()) as Inspector;
       setList(list.map((x) => (x.id === i.id ? updated : x)));
-    } else if (res.status === 401) {
-      handleAuthError(res.status, router);
     }
   }
 

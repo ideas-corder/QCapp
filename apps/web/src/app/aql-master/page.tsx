@@ -1,25 +1,14 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { apiFetchOptional } from '@/lib/api';
 import AqlMasterEditor from './AqlMasterEditor';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
-
-async function fetchAqlMaster(): Promise<{ rows: any[]; unauthorized: boolean }> {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) return { rows: [], unauthorized: true };
-  const res = await fetch(`${API}/aql-master`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (res.status === 401) return { rows: [], unauthorized: true };
-  if (!res.ok) return { rows: [], unauthorized: false };
-  return { rows: await res.json(), unauthorized: false };
+async function fetchAqlMaster(): Promise<any[]> {
+  return (
+    (await apiFetchOptional<any[]>('/aql-master', {}, '/aql-master')) ?? []
+  );
 }
 
 export default async function AqlMasterPage() {
-  if (!cookies().get('qc_access')?.value) redirect('/login?expired=1');
-  const { rows, unauthorized } = await fetchAqlMaster();
-  if (unauthorized) redirect('/login');
+  const rows = await fetchAqlMaster();
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">AQL Master</h1>

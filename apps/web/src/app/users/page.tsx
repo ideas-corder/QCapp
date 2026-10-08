@@ -1,9 +1,5 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { apiFetchOptional } from '@/lib/api';
 import UsersEditor from './UsersEditor';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 interface UserView {
   id: string;
@@ -31,9 +27,6 @@ async function fetchUsers(): Promise<{
   forbidden: boolean;
   caller: { userId: string; isSuperAdmin: boolean; email: string; role: string } | null;
 }> {
-  const token = cookies().get('qc_access')?.value;
-  if (!token) return { items: null, forbidden: false, caller: null };
-
   // Identify the caller via /auth/me so we can render the "you
   // can't edit yourself" affordance without an extra round trip.
   // /auth/me returns the AuthUser shape with `userId` (the JWT
@@ -43,7 +36,7 @@ async function fetchUsers(): Promise<{
     email: string;
     role: string;
     isSuperAdmin: boolean;
-  }>('/auth/me');
+  }>('/auth/me', {}, '/users');
   if (!me) return { items: null, forbidden: false, caller: null };
 
   // /users/all is super-admin-only; super-admins see the full
@@ -53,13 +46,11 @@ async function fetchUsers(): Promise<{
     return { items: null, forbidden: true, caller: me };
   }
 
-  const users = await apiFetchOptional<UserView[]>('/users/all');
+  const users = await apiFetchOptional<UserView[]>('/users/all', {}, '/users');
   return { items: users, forbidden: false, caller: me };
 }
 
 export default async function UsersPage() {
-  if (!cookies().get('qc_access')?.value) redirect('/login?expired=1');
-
   const { items, forbidden, caller } = await fetchUsers();
 
   if (forbidden || !items) {

@@ -8,6 +8,7 @@ import {
   DEFAULT_WIDTHS,
 } from './columns';
 import type { ColumnFilterValue } from './ColumnFilter';
+import { clientApiFetch } from '@/lib/api-client';
 
 /**
  * Layout state held by the parent (`InspectionsGrid`). A "layout"
@@ -98,8 +99,6 @@ export type SavedView = {
   ownerId: string | null;
   updatedAt: string;
 };
-
-const API = '/api/backend';
 
 /**
  * The "Customize columns" popover.
@@ -428,7 +427,7 @@ function SaveAsPanel({
  */
 export async function fetchSavedViews(): Promise<SavedView[]> {
   try {
-    const res = await fetch(`${API}/inspection-views`, {
+    const res = await clientApiFetch('/inspection-views', {
       credentials: 'same-origin',
       cache: 'no-store',
     });
@@ -444,7 +443,7 @@ export async function createView(
   name: string,
   layout: LayoutState,
 ): Promise<SavedView> {
-  const res = await fetch(`${API}/inspection-views`, {
+  const res = await clientApiFetch('/inspection-views', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
@@ -463,7 +462,7 @@ export async function updateView(
   id: string,
   layout: LayoutState,
 ): Promise<SavedView> {
-  const res = await fetch(`${API}/inspection-views/${id}`, {
+  const res = await clientApiFetch(`/inspection-views/${id}`, {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
@@ -474,7 +473,7 @@ export async function updateView(
 }
 
 export async function deleteView(id: string): Promise<void> {
-  const res = await fetch(`${API}/inspection-views/${id}`, {
+  const res = await clientApiFetch(`/inspection-views/${id}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   });

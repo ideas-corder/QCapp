@@ -3,7 +3,7 @@
  * caller's cookie token and returns the parsed stats or a normalised
  * `{ error }` shape so the route can render the same error UI.
  */
-import { cookies } from 'next/headers';
+import { serverApiRequest } from '@/lib/api';
 
 export type DashboardFetchResult =
   | { ok: true; stats: any }
@@ -48,21 +48,21 @@ function friendlyApiError(status: number, raw: string): string {
   }
 }
 
-export async function fetchDashboardStats(): Promise<DashboardFetchResult> {
-  const cookieStore = cookies();
-  const token = cookieStore.get('qc_access')?.value;
-  const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
-
+export async function fetchDashboardStats(
+  returnTo = '/dashboard',
+): Promise<DashboardFetchResult> {
   let res: Response;
   try {
-    res = await fetch(`${api}/inspections/dashboard`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      cache: 'no-store',
-    });
+    res = await serverApiRequest(
+      '/inspections/dashboard',
+      {},
+      returnTo,
+    );
   } catch (err: any) {
+    if (String(err?.digest ?? '').startsWith('NEXT_REDIRECT')) throw err;
     return {
       ok: false,
-      error: `Network error reaching API at ${api}: ${err?.message ?? String(err)}`,
+      error: `Network error reaching API: ${err?.message ?? String(err)}`,
     };
   }
   if (!res.ok) {

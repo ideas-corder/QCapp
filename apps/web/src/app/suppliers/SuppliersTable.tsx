@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import ImportCsvButton from '../../components/ImportCsvButton';
+import { clientApiFetch } from '@/lib/api-client';
 
 interface Supplier {
   id: string;
@@ -39,7 +40,7 @@ export default function SuppliersTable({ initial }: { initial: Supplier[] }) {
       return;
     }
     if (!draft.name.trim()) return;
-    const res = await fetch('/api/backend/suppliers', {
+    const res = await clientApiFetch('/suppliers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...draft, vendorId }),
@@ -63,7 +64,7 @@ export default function SuppliersTable({ initial }: { initial: Supplier[] }) {
       }
       patch.vendorId = normalized;
     }
-    const res = await fetch(`/api/backend/suppliers/${s.id}`, {
+    const res = await clientApiFetch(`/suppliers/${s.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
