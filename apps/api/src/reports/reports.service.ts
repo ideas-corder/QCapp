@@ -128,6 +128,8 @@ export class ReportsService {
       const resultColor =
         i.overallResult === 'PASS'
           ? '#0a7d3b'
+          : i.overallResult === 'COMMERCIAL_APPROVED'
+          ? '#2563eb'
           : i.overallResult === 'REWORK' || i.overallResult === 'HOLD'
           ? '#b45309'
           : i.overallResult === 'REJECTED'
@@ -136,7 +138,7 @@ export class ReportsService {
       doc
         .fontSize(16)
         .fillColor(resultColor)
-        .text(`Result: ${i.overallResult}`, { align: 'center' });
+        .text(`Result: ${i.overallResult.replace(/_/g, ' ')}`, { align: 'center' });
       doc.moveDown();
 
       // Triggered Actions render block removed 2026-09-03 — QC Rules

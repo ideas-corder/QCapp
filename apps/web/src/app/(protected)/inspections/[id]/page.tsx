@@ -173,6 +173,8 @@ export default async function InspectionDetail({
                 ? 'text-pass'
                 : i.overallResult === 'REWORK' || i.overallResult === 'HOLD'
                 ? 'text-rework'
+                : i.overallResult === 'COMMERCIAL_APPROVED'
+                ? 'text-blue-700'
                 : i.overallResult === 'REJECTED'
                 ? 'text-orange-900'
                 : i.overallResult === 'FAIL'
@@ -180,7 +182,7 @@ export default async function InspectionDetail({
                 : 'text-pending'
             }`}
           >
-            {i.overallResult}
+            {String(i.overallResult).replace(/_/g, ' ')}
           </div>
           <Row label="Critical" value={String(i.totalCritical)} />
           <Row label="Major" value={String(i.totalMajor)} />

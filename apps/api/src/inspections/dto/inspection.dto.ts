@@ -428,8 +428,8 @@ export class CreateInspectionDto {
   @IsInt() @Min(0)
   totalMinor!: number;
 
-  @IsOptional() @IsIn(['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'REJECTED'])
-  overallResult?: 'PASS' | 'FAIL' | 'PENDING_REVIEW' | 'REWORK' | 'HOLD' | 'REJECTED';
+  @IsOptional() @IsIn(['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'COMMERCIAL_APPROVED', 'REJECTED'])
+  overallResult?: 'PASS' | 'FAIL' | 'PENDING_REVIEW' | 'REWORK' | 'HOLD' | 'COMMERCIAL_APPROVED' | 'REJECTED';
 
   @IsOptional() @IsString()
   inspectorName?: string;
@@ -634,6 +634,7 @@ export class DashboardStats {
   totalFailed!: number;
   totalRework!: number;
   totalHold!: number;
+  totalCommercialApproved!: number;
   totalRejected!: number;
   totalPendingSync!: number;
   passRatePercentage!: number;
@@ -652,6 +653,7 @@ export class DashboardStats {
     totalFailed: number;
     totalRework: number;
     totalHold: number;
+    totalCommercialApproved: number;
     totalRejected: number;
     passRate: number; // 0–100, integer, % of decided inspections that passed
     lastInspectionAt: Date | null;
@@ -669,6 +671,7 @@ export class DashboardStats {
     failed: number;
     rework: number;
     hold: number;
+    commercialApproved: number;
     rejected: number;
   }[];
 

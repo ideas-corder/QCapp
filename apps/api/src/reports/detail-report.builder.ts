@@ -466,9 +466,18 @@ export class DetailReportBuilder {
 
     const result = (i.overallResult || 'PENDING_REVIEW').toUpperCase();
     const isPass = result === 'PASS';
+    const isCommercialApproved = result === 'COMMERCIAL_APPROVED';
     const isHold = result === 'HOLD' || result === 'PENDING_REVIEW';
-    const resultBg = isPass ? C.green : isHold ? '#D6A007' : C.reject;
-    const resultLabel = isPass
+    const resultBg = isPass
+      ? C.green
+      : isCommercialApproved
+      ? C.blue
+      : isHold
+      ? '#D6A007'
+      : C.reject;
+    const resultLabel = isCommercialApproved
+      ? 'COMMERCIAL APPROVED'
+      : isPass
       ? 'PASS'
       : result === 'REWORK'
       ? 'REWORK'
@@ -489,7 +498,10 @@ export class DetailReportBuilder {
     const y = doc.y;
     for (const card of cards) {
       doc.rect(x, y, cardW, cardH).fill(card.bg);
-      doc.font(FONT_BOLD).fontSize(card.label === 'RESULT' ? 14 : 20).fillColor('#ffffff');
+      const valueFontSize = card.label === 'RESULT'
+        ? card.value === 'COMMERCIAL APPROVED' ? 9 : 14
+        : 20;
+      doc.font(FONT_BOLD).fontSize(valueFontSize).fillColor('#ffffff');
       doc.text(card.value, x, y + 7, { width: cardW, align: 'center', height: 25, lineBreak: false });
       doc.x = left;
       doc.font(FONT_BOLD).fontSize(7).fillColor('#ffffff');

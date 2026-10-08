@@ -27,6 +27,7 @@ const RESULT_LABEL: Record<Inspection['overallResult'], string> = {
   FAIL: 'FAIL',
   REWORK: 'REWORK',
   HOLD: 'HOLD',
+  COMMERCIAL_APPROVED: 'COMMERCIAL APPROVED',
   REJECTED: 'REJECTED',
   PENDING_REVIEW: 'PENDING REVIEW',
 };
@@ -35,6 +36,7 @@ const RESULT_BAR: Record<Inspection['overallResult'], string> = {
   FAIL: 'bg-reject-deep',
   REWORK: 'bg-amber-500',
   HOLD: 'bg-amber-500',
+  COMMERCIAL_APPROVED: 'bg-blue-600',
   REJECTED: 'bg-orange-600',
   PENDING_REVIEW: 'bg-yellow-500',
 };

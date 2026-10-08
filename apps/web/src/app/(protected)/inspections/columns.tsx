@@ -31,6 +31,7 @@ export type Inspection = {
     | 'PENDING_REVIEW'
     | 'REWORK'
     | 'HOLD'
+    | 'COMMERCIAL_APPROVED'
     | 'REJECTED';
   syncStatus: 'SYNCED' | 'PENDING_SYNC' | 'FAILED';
   category?: { name: string };
@@ -49,6 +50,7 @@ export const RESULT_STYLE: Record<Inspection['overallResult'], string> = {
   FAIL: 'bg-reject-soft text-reject-deep',
   REWORK: 'bg-amber-100 text-amber-800',
   HOLD: 'bg-amber-100 text-amber-800',
+  COMMERCIAL_APPROVED: 'bg-blue-100 text-blue-800',
   REJECTED: 'bg-orange-200 text-orange-900',
   PENDING_REVIEW: 'bg-yellow-100 text-yellow-800',
 };
@@ -347,13 +349,14 @@ export const COLUMNS: ColumnDef[] = [
     sortValue: 'DATE_DESC',
     filterable: {
       kind: 'enum',
-      enumValues: ['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'REJECTED'],
+      enumValues: ['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'COMMERCIAL_APPROVED', 'REJECTED'],
       enumLabels: {
         PASS: 'Pass',
         FAIL: 'Fail',
         PENDING_REVIEW: 'Pending',
         REWORK: 'Rework',
         HOLD: 'Hold',
+        COMMERCIAL_APPROVED: 'Commercial Approved',
         REJECTED: 'Rejected',
       },
     },
@@ -361,7 +364,7 @@ export const COLUMNS: ColumnDef[] = [
       <span
         className={`px-2 py-0.5 rounded text-xs font-medium ${RESULT_STYLE[i.overallResult]}`}
       >
-        {i.overallResult}
+        {i.overallResult.replace(/_/g, ' ')}
       </span>
     ),
   },

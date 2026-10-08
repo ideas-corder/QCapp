@@ -37,6 +37,7 @@ export default async function ExecutiveDashboard() {
     { label: 'Failed', value: stats.totalFailed, color: 'rgb(var(--reject))' },
     { label: 'Rework', value: stats.totalRework, color: '#b45309' },
     { label: 'Hold', value: stats.totalHold, color: '#7c3aed' },
+    { label: 'Commercial Approved', value: stats.totalCommercialApproved, color: '#2563eb' },
     { label: 'Rejected', value: stats.totalRejected, color: '#374151' },
   ].filter((s) => s.value > 0);
 

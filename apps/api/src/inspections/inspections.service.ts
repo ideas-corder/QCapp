@@ -886,6 +886,9 @@ export class InspectionsService {
     const totalHold = await this.inspectionRepo.count({
       where: { overallResult: 'HOLD' },
     });
+    const totalCommercialApproved = await this.inspectionRepo.count({
+      where: { overallResult: 'COMMERCIAL_APPROVED' },
+    });
     const totalRejected = await this.inspectionRepo.count({
       where: { overallResult: 'REJECTED' },
     });
@@ -944,6 +947,7 @@ export class InspectionsService {
       .addSelect(`SUM(CASE WHEN i.overall_result = 'FAIL'     THEN 1 ELSE 0 END)`, 'failed')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'REWORK'   THEN 1 ELSE 0 END)`, 'rework')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'HOLD'     THEN 1 ELSE 0 END)`, 'hold')
+      .addSelect(`SUM(CASE WHEN i.overall_result = 'COMMERCIAL_APPROVED' THEN 1 ELSE 0 END)`, 'commercial_approved')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'REJECTED' THEN 1 ELSE 0 END)`, 'rejected')
       .addSelect('MAX(i.created_at)', 'last_inspection_at')
       .leftJoin('i.supplier', 's')
@@ -966,6 +970,7 @@ export class InspectionsService {
         totalFailed: Number(r.failed),
         totalRework: Number(r.rework),
         totalHold: Number(r.hold),
+        totalCommercialApproved: Number(r.commercial_approved),
         totalRejected: Number(r.rejected),
         passRate,
         lastInspectionAt: r.last_inspection_at ? new Date(r.last_inspection_at) : null,
@@ -988,6 +993,7 @@ export class InspectionsService {
       .addSelect(`SUM(CASE WHEN i.overall_result = 'FAIL'     THEN 1 ELSE 0 END)`, 'failed')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'REWORK'   THEN 1 ELSE 0 END)`, 'rework')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'HOLD'     THEN 1 ELSE 0 END)`, 'hold')
+      .addSelect(`SUM(CASE WHEN i.overall_result = 'COMMERCIAL_APPROVED' THEN 1 ELSE 0 END)`, 'commercial_approved')
       .addSelect(`SUM(CASE WHEN i.overall_result = 'REJECTED' THEN 1 ELSE 0 END)`, 'rejected')
       .where('i.created_at >= :windowStart', { windowStart })
       .groupBy(`date_trunc('day', i.created_at)`)
@@ -1011,6 +1017,7 @@ export class InspectionsService {
         failed: row ? Number(row.failed) : 0,
         rework: row ? Number(row.rework) : 0,
         hold: row ? Number(row.hold) : 0,
+        commercialApproved: row ? Number(row.commercial_approved) : 0,
         rejected: row ? Number(row.rejected) : 0,
       });
     }
@@ -1099,6 +1106,7 @@ export class InspectionsService {
       totalFailed,
       totalRework,
       totalHold,
+      totalCommercialApproved,
       totalRejected,
       totalPendingSync,
       passRatePercentage,

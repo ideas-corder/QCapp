@@ -65,7 +65,7 @@ export class InspectionsController {
   verify(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.service.getById(id).then((i) => {
       const serverVerified = this.service.verifyOutcome(i);
-      // REWORK / HOLD / REJECTED are inspector overrides — they're
+      // REWORK / HOLD / COMMERCIAL_APPROVED / REJECTED are inspector overrides — they're
       // legitimate verdicts in their own right, so we treat them as
       // always matching (the server can't infer them from the defect
       // list alone). For PASS/FAIL/PENDING_REVIEW we still require the
@@ -74,6 +74,7 @@ export class InspectionsController {
       const matches =
         i.overallResult === 'REWORK' ||
         i.overallResult === 'HOLD' ||
+        i.overallResult === 'COMMERCIAL_APPROVED' ||
         i.overallResult === 'REJECTED' ||
         i.overallResult === serverVerified;
       return {

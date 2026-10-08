@@ -239,7 +239,7 @@ export default function NewInspectionForm({
     // explicitly choose Pass / Fail / Rework. Empty string means "not
     // picked yet" (form starts blank on purpose so the choice is
     // deliberate, not the default).
-    inspectionStatus: '' as '' | 'PASS' | 'FAIL' | 'REWORK' | 'HOLD' | 'REJECTED',
+    inspectionStatus: '' as '' | 'PASS' | 'FAIL' | 'REWORK' | 'HOLD' | 'COMMERCIAL_APPROVED' | 'REJECTED',
     // Step 8 Debit note — yes/no + free-text comment. The form keeps
     // both blank until the inspector picks Yes or No so the snapshot
     // we send to the API never carries a comment without a deliberate
@@ -318,15 +318,15 @@ export default function NewInspectionForm({
   };
   const [evalChecks, setEvalChecks] = useState<EvalCheck[]>(() => [
     { key: 'INLINE_INSPECTION_DONE', label: 'Inline Inspection Done', answer: '', photos: [] },
-    { key: 'PP_SAMPLE_APPROVED', label: 'PP Sample Approved', answer: 'NO', photos: [] },
-    { key: 'IC_AVAILABLE', label: 'IC Available', answer: 'NO', photos: [] },
-    { key: 'BARCODE', label: 'Barcode', answer: 'NO', photos: [] },
-    { key: 'CARE_LABEL', label: 'Care Label', answer: 'NO', photos: [] },
-    { key: 'PACKING_LIST_AVAILABLE', label: 'Packing List Available', answer: 'NO', photos: [] },
-    { key: 'PO_SAME', label: 'PO Same', answer: 'NO', photos: [] },
-    { key: 'ATTACH_MEASUREMENT_SHEET', label: 'Attach Measurement Sheet', answer: 'NO', photos: [] },
-    { key: 'STORAGE_OK', label: 'Storage OK', answer: 'NO', photos: [] },
-    { key: 'TEST_REPORT_AVAILABLE', label: 'Test report available', answer: 'NO', photos: [] },
+    { key: 'PP_SAMPLE_APPROVED', label: 'PP Sample Approved', answer: '', photos: [] },
+    { key: 'IC_AVAILABLE', label: 'IC Available', answer: '', photos: [] },
+    { key: 'BARCODE', label: 'Barcode', answer: '', photos: [] },
+    { key: 'CARE_LABEL', label: 'Care Label', answer: '', photos: [] },
+    { key: 'PACKING_LIST_AVAILABLE', label: 'Packing List Available', answer: '', photos: [] },
+    { key: 'PO_SAME', label: 'PO Same', answer: '', photos: [] },
+    { key: 'ATTACH_MEASUREMENT_SHEET', label: 'Attach Measurement Sheet', answer: '', photos: [] },
+    { key: 'STORAGE_OK', label: 'Storage OK', answer: '', photos: [] },
+    { key: 'TEST_REPORT_AVAILABLE', label: 'Test report available', answer: '', photos: [] },
   ]);
   function setEvalAnswer(idx: number, answer: 'YES' | 'NO') {
     setEvalChecks((prev) => {
@@ -707,7 +707,7 @@ export default function NewInspectionForm({
   if (!(Number(draft.inspectedQuantity) > 0)) missingFields.push('Inspected quantity');
   if (!draft.fabricQuality.trim()) missingFields.push('Fabric quality / type');
   if (!draft.inspectionStatus)
-    missingFields.push('Inspection status (Pass / Fail / Rework / Hold / Reject)');
+    missingFields.push('Inspection status (Pass / Fail / Rework / Hold / Commercial Approved / Reject)');
   // Step 10 Signatures — any one stakeholder signing is enough. We
   // surface a single "at least one signature" entry instead of
   // listing all four canvases, so the inspector knows the
@@ -1257,10 +1257,12 @@ export default function NewInspectionForm({
                 className={`px-2 py-0.5 rounded text-sm ${
                   submitOk.result === 'PASS'
                     ? 'bg-accept text-qc-on'
+                    : submitOk.result === 'COMMERCIAL_APPROVED'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-reject text-qc-on'
                 }`}
               >
-                {submitOk.result}
+                {submitOk.result.replace(/_/g, ' ')}
               </span>
             </div>
             <div className="text-xs text-accept-deep mt-1 font-mono">
@@ -2132,7 +2134,7 @@ export default function NewInspectionForm({
                 onChange={(e) =>
                   setDraft({
                     ...draft,
-                    inspectionStatus: e.target.value as '' | 'PASS' | 'FAIL' | 'REWORK' | 'HOLD' | 'REJECTED',
+                    inspectionStatus: e.target.value as '' | 'PASS' | 'FAIL' | 'REWORK' | 'HOLD' | 'COMMERCIAL_APPROVED' | 'REJECTED',
                   })
                 }
                 className={`w-full px-3 py-2 border rounded text-sm bg-white ${
@@ -2150,6 +2152,7 @@ export default function NewInspectionForm({
                 <option value="FAIL">Fail</option>
                 <option value="REWORK">Rework</option>
                 <option value="HOLD">Hold</option>
+                <option value="COMMERCIAL_APPROVED">Commercial Approved</option>
                 <option value="REJECTED">Reject</option>
               </select>
             </Field>

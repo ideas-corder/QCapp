@@ -24,6 +24,7 @@ export type InspectionResult =
   | 'PENDING_REVIEW'
   | 'REWORK'
   | 'HOLD'
+  | 'COMMERCIAL_APPROVED'
   | 'REJECTED';
 export const INSPECTION_RESULT_VALUES: readonly InspectionResult[] = [
   'PASS',
@@ -31,6 +32,7 @@ export const INSPECTION_RESULT_VALUES: readonly InspectionResult[] = [
   'PENDING_REVIEW',
   'REWORK',
   'HOLD',
+  'COMMERCIAL_APPROVED',
   'REJECTED',
 ] as const;
 export type SyncStatus = 'PENDING_SYNC' | 'SYNCED' | 'FAILED';

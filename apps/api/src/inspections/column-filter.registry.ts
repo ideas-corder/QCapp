@@ -85,7 +85,7 @@ const RULES: ColumnRule[] = [
     key: 'result',
     sql: 'i.overall_result',
     type: 'enum',
-    enumValues: ['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'REJECTED'],
+    enumValues: ['PASS', 'FAIL', 'PENDING_REVIEW', 'REWORK', 'HOLD', 'COMMERCIAL_APPROVED', 'REJECTED'],
   },
   {
     key: 'sync',
