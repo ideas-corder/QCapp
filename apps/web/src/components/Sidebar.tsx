@@ -69,6 +69,7 @@ function buildGroups(role: UserRole, isSuperAdmin: boolean): NavGroup[] {
         { href: '/inspection-types', label: 'Inspection Types' },
         { href: '/aql-master', label: 'AQL Master' },
         { href: '/inspectors', label: 'Inspectors' },
+        { href: '/merchandisers', label: 'Merchandisers' },
         { href: '/suppliers', label: 'Suppliers' },
       ],
     });
