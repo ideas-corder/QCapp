@@ -13,6 +13,7 @@ import { InspectionEntity } from './inspection.entity';
 import { InspectionTypeEntity } from './inspection-type.entity';
 import { InspectionViewEntity } from './inspection-view.entity';
 import { InspectorEntity } from './inspector.entity';
+import { MerchandiserEntity } from './merchandiser.entity';
 import { PhotoEntity } from './photo.entity';
 import { ProductCategoryEntity } from './product-category.entity';
 // QcRuleEntity was removed from the registry on 2026-09-03 — QC Rules
@@ -32,6 +33,7 @@ export const entities = [
   ProductCategoryEntity,
   SupplierEntity,
   InspectorEntity,
+  MerchandiserEntity,
   // QcRuleEntity intentionally not registered — removed 2026-09-03.
   // FilterPresetEntity intentionally not registered — removed 2026-09-03.
   InspectionEntity,
@@ -54,6 +56,7 @@ export {
   ProductCategoryEntity,
   SupplierEntity,
   InspectorEntity,
+  MerchandiserEntity,
   // QcRuleEntity intentionally not re-exported — removed 2026-09-03.
   // FilterPresetEntity intentionally not re-exported — removed 2026-09-03.
   InspectionEntity,

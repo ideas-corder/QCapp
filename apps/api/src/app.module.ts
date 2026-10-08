@@ -9,6 +9,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { InspectorsModule } from './inspectors/inspectors.module';
+import { MerchandisersModule } from './merchandisers/merchandisers.module';
 // RulesModule was removed on 2026-09-03 — QC Rules feature retired.
 // The module file remains as an empty stub so any stale reference still
 // resolves, but it is no longer registered in AppModule (see comment
@@ -72,6 +73,7 @@ import {
     ProductCategoriesModule,
     SuppliersModule,
     InspectorsModule,
+    MerchandisersModule,
     // RulesModule intentionally not registered — QC Rules retired 2026-09-03.
     // FilterPresetsModule intentionally not registered — Filter Presets retired 2026-09-03.
     InspectionViewsModule,

@@ -11,6 +11,7 @@ import {
   InspectionTypeEntity,
   InspectionViewEntity,
   InspectorEntity,
+  MerchandiserEntity,
   PhotoEntity,
   ProductCategoryEntity,
   // QcRuleEntity removed 2026-09-03 — QC Rules feature retired.
@@ -35,6 +36,7 @@ export const AppDataSource = new DataSource({
     ProductCategoryEntity,
     SupplierEntity,
     InspectorEntity,
+    MerchandiserEntity,
     // QcRuleEntity removed 2026-09-03 — QC Rules feature retired.
     // FilterPresetEntity removed 2026-09-03 — Filter Presets feature retired.
     InspectionEntity,
