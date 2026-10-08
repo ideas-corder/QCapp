@@ -3,9 +3,11 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { CategoryMerchandiser } from './category-merchandiser.entity';
 
 /** Admin-managed merchandiser master data. */
 @Entity({ name: 'merchandisers' })
@@ -26,6 +28,12 @@ export class MerchandiserEntity {
   @Index('ix_merchandisers_active')
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive!: boolean;
+
+  @OneToMany(
+    () => CategoryMerchandiser,
+    (categoryMerchandiser) => categoryMerchandiser.merchandiser,
+  )
+  categoryMerchandisers!: CategoryMerchandiser[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

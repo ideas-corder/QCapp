@@ -8,6 +8,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { InspectionEntity } from './inspection.entity';
+import { CategoryMerchandiser } from './category-merchandiser.entity';
+import { MerchandiserEntity } from './merchandiser.entity';
 
 /**
  * Product Category master data.
@@ -44,6 +46,24 @@ export class ProductCategoryEntity {
   // a nullable `product_category_id` column so existing data isn't broken.
   @OneToMany(() => InspectionEntity, (i) => i.productCategory)
   inspections!: InspectionEntity[];
+
+  @OneToMany(
+    () => CategoryMerchandiser,
+    (categoryMerchandiser) => categoryMerchandiser.category,
+  )
+  categoryMerchandisers!: CategoryMerchandiser[];
+
+  /**
+   * Convenience view over the explicit junction rows. Callers must load
+   * `categoryMerchandisers.merchandiser` when querying the category.
+   */
+  get merchandisers(): MerchandiserEntity[] {
+    return (this.categoryMerchandisers ?? [])
+      .map((association) => association.merchandiser)
+      .filter(
+        (merchandiser): merchandiser is MerchandiserEntity => !!merchandiser,
+      );
+  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

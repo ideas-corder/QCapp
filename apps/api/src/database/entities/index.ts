@@ -1,6 +1,7 @@
 import { AqlMasterEntity } from './aql-master.entity';
 import { CategoryAqlSetupEntity } from './category-aql.entity';
 import { CategoryEntity } from './category.entity';
+import { CategoryMerchandiser } from './category-merchandiser.entity';
 import { DefectItemEntity } from './defect-item.entity';
 import { EmailEventEntity } from './email-event.entity';
 // FilterPresetEntity was removed from the registry on 2026-09-03 —
@@ -30,6 +31,7 @@ export const entities = [
   UserEntity,
   CategoryEntity,
   CategoryAqlSetupEntity,
+  CategoryMerchandiser,
   ProductCategoryEntity,
   SupplierEntity,
   InspectorEntity,
@@ -53,6 +55,7 @@ export {
   UserEntity,
   CategoryEntity,
   CategoryAqlSetupEntity,
+  CategoryMerchandiser,
   ProductCategoryEntity,
   SupplierEntity,
   InspectorEntity,

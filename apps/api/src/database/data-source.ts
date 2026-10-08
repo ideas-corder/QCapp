@@ -5,6 +5,7 @@ import * as path from 'path';
 import {
   CategoryAqlSetupEntity,
   CategoryEntity,
+  CategoryMerchandiser,
   DefectItemEntity,
   // FilterPresetEntity removed 2026-09-03 — Filter Presets feature retired.
   InspectionEntity,
@@ -33,6 +34,7 @@ export const AppDataSource = new DataSource({
     UserEntity,
     CategoryEntity,
     CategoryAqlSetupEntity,
+    CategoryMerchandiser,
     ProductCategoryEntity,
     SupplierEntity,
     InspectorEntity,
