@@ -2,7 +2,6 @@ import NewInspectionForm from './NewInspectionForm';
 import { SetupMastersButton } from './SetupMastersButton';
 import { getUiLayoutFromCookie } from '@/lib/preferences';
 import { apiFetchOptional } from '@/lib/api';
-import { requireCurrentUser } from '@/lib/server-session';
 
 interface ProductCategory {
   id: string;
@@ -52,10 +51,6 @@ interface AqlMaster {
 
 async function fetchOptions() {
   const returnTo = '/inspections/new';
-  // Authenticate once before starting the parallel master-data requests.
-  // The protected layout calls the same cached helper, so both share one
-  // /auth/me request during this server render.
-  await requireCurrentUser();
   const [
     cats,
     prodCats,

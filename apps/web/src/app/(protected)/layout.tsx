@@ -21,7 +21,7 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const caller = await requireCurrentUser();
+  const caller = requireCurrentUser();
 
   const uiLayout = getUiLayoutFromCookie();
 

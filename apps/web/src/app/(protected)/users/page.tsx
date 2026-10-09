@@ -1,4 +1,5 @@
 import { apiFetchOptional } from '@/lib/api';
+import { requireCurrentUser } from '@/lib/server-session';
 import UsersEditor from './UsersEditor';
 
 interface UserView {
@@ -27,17 +28,9 @@ async function fetchUsers(): Promise<{
   forbidden: boolean;
   caller: { userId: string; isSuperAdmin: boolean; email: string; role: string } | null;
 }> {
-  // Identify the caller via /auth/me so we can render the "you
-  // can't edit yourself" affordance without an extra round trip.
-  // /auth/me returns the AuthUser shape with `userId` (the JWT
-  // subject) — see apps/api/src/auth/auth.controller.ts `me()`.
-  const me = await apiFetchOptional<{
-    userId: string;
-    email: string;
-    role: string;
-    isSuperAdmin: boolean;
-  }>('/auth/me', {}, '/users');
-  if (!me) return { items: null, forbidden: false, caller: null };
+  // Middleware already verified the caller through /auth/me. Reuse that
+  // identity for the "you can't edit yourself" affordance.
+  const me = requireCurrentUser();
 
   // /users/all is super-admin-only; super-admins see the full
   // list, everyone else gets `null` so the page renders an

@@ -1,22 +1,32 @@
-import { cache } from 'react';
 import { headers } from 'next/headers';
-import { apiFetch } from '@/lib/api';
 import type { CallerIdentity } from '@/lib/auth';
 
-function currentReturnTo(): string {
-  const value = headers().get('x-qc-return-to');
-  if (!value || !value.startsWith('/') || value.startsWith('//')) {
-    return '/dashboard';
-  }
-  return value;
-}
-
 /**
- * Verify the access token once per Server Component render. React's cache
- * makes layout and page callers share the same /auth/me request. When the
- * access token has expired, serverApiRequest performs one refresh redirect
- * before any page-level parallel data fetching starts.
+ * Return the identity that middleware already verified through /auth/me.
+ * Protected routes always pass through middleware, so no page-level API call
+ * or JWT decoding is needed here.
  */
-export const requireCurrentUser = cache(async (): Promise<CallerIdentity> => {
-  return apiFetch<CallerIdentity>('/auth/me', {}, currentReturnTo());
-});
+export function requireCurrentUser(): CallerIdentity {
+  const value = headers().get('x-qc-caller');
+  if (!value) {
+    throw new Error('Missing verified caller identity from middleware');
+  }
+
+  try {
+    const caller = JSON.parse(decodeURIComponent(value)) as CallerIdentity;
+    if (
+      !caller.userId ||
+      (caller.role !== 'admin' &&
+        caller.role !== 'inspector' &&
+        caller.role !== 'viewer')
+    ) {
+      throw new Error('Invalid caller identity');
+    }
+    return caller;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid caller identity') {
+      throw error;
+    }
+    throw new Error('Invalid verified caller identity from middleware');
+  }
+}
