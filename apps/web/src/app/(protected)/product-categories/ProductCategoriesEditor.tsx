@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import ImportSpreadsheetButton from '@/components/ImportSpreadsheetButton';
 import { clientApiFetch } from '@/lib/api-client';
+import CategoryMerchandiserModal from './CategoryMerchandiserModal';
 
 /**
  * Send the user back to /login when the API rejects the request as 401.
@@ -14,6 +15,7 @@ interface ProductCategory {
   name: string;
   description: string | null;
   isActive: boolean;
+  merchandisers?: Array<{ id: string; name: string }>;
 }
 
 type SortKey =
@@ -40,6 +42,8 @@ export default function ProductCategoriesEditor({
   const [edit, setEdit] = useState({ name: '', description: '', isActive: true });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [assignmentCategory, setAssignmentCategory] =
+    useState<ProductCategory | null>(null);
 
   // Filter / sort
   const [search, setSearch] = useState('');
@@ -68,7 +72,11 @@ export default function ProductCategoriesEditor({
         return;
       }
       const created = (await res.json()) as ProductCategory;
-      setList([...list, created].sort((a, b) => a.code.localeCompare(b.code)));
+      setList(
+        [...list, { ...created, merchandisers: [] }].sort((a, b) =>
+          a.code.localeCompare(b.code),
+        ),
+      );
       setDraft({ code: '', name: '', description: '' });
       setCreateOk(true);
       setTimeout(() => setCreateOk(false), 2000);
@@ -113,7 +121,13 @@ export default function ProductCategoriesEditor({
         return;
       }
       const updated = (await res.json()) as ProductCategory;
-      setList(list.map((x) => (x.id === p.id ? updated : x)));
+      setList(
+        list.map((x) =>
+          x.id === p.id
+            ? { ...updated, merchandisers: x.merchandisers ?? [] }
+            : x,
+        ),
+      );
       setEditingId(null);
     } catch (e: any) {
       setEditError(e?.message ?? 'Network error');
@@ -147,7 +161,13 @@ export default function ProductCategoriesEditor({
     });
     if (res.ok) {
       const updated = (await res.json()) as ProductCategory;
-      setList(list.map((x) => (x.id === p.id ? updated : x)));
+      setList(
+        list.map((x) =>
+          x.id === p.id
+            ? { ...updated, merchandisers: x.merchandisers ?? [] }
+            : x,
+        ),
+      );
     }
   }
 
@@ -419,10 +439,11 @@ export default function ProductCategoriesEditor({
           <div className="flex-1 min-w-[180px]">
             <SortHeader label="Name" sortValue="NAME_ASC" />
           </div>
+          <div className="w-56 text-stone-500">Merchandisers</div>
           <div className="w-32">
             <SortHeader label="Status" sortValue="STATUS_ASC" />
           </div>
-          <div className="w-32 text-right text-stone-500">Actions</div>
+          <div className="w-56 text-right text-stone-500">Actions</div>
         </div>
 
         <div className="divide-y divide-stone-100">
@@ -452,6 +473,7 @@ export default function ProductCategoriesEditor({
                 onEdit={() => startEdit(p)}
                 onDelete={() => remove(p)}
                 onToggle={() => toggleActive(p)}
+                onManageMerchandisers={() => setAssignmentCategory(p)}
               />
             ),
           )}
@@ -472,6 +494,21 @@ export default function ProductCategoriesEditor({
           )}
         </div>
       </div>
+      {assignmentCategory && (
+        <CategoryMerchandiserModal
+          category={assignmentCategory}
+          onClose={() => setAssignmentCategory(null)}
+          onSaved={(merchandisers) => {
+            setList((current) =>
+              current.map((category) =>
+                category.id === assignmentCategory.id
+                  ? { ...category, merchandisers }
+                  : category,
+              ),
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -501,11 +538,13 @@ function ReadRow({
   onEdit,
   onDelete,
   onToggle,
+  onManageMerchandisers,
 }: {
   p: ProductCategory;
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
+  onManageMerchandisers: () => void;
 }) {
   return (
     <div className="px-4 py-3 flex items-center gap-3 text-sm">
@@ -516,10 +555,23 @@ function ReadRow({
           <div className="text-xs text-stone-500 truncate">{p.description}</div>
         )}
       </div>
+      <div
+        className="w-56 truncate text-xs text-stone-600"
+        title={(p.merchandisers ?? []).map((item) => item.name).join(', ')}
+      >
+        {(p.merchandisers ?? []).map((item) => item.name).join(', ') || '—'}
+      </div>
       <div className="w-32">
         <ActiveToggle p={p} toggle={onToggle} />
       </div>
-      <div className="w-32 flex justify-end gap-2">
+      <div className="w-56 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onManageMerchandisers}
+          className="text-xs px-2 py-1 rounded border border-qc-300 text-qc-deep hover:bg-qc-50"
+        >
+          Merchandisers
+        </button>
         <button
           type="button"
           onClick={onEdit}
@@ -575,6 +627,12 @@ function EditRow({
             className="w-full px-2 py-1 border rounded text-sm"
           />
         </div>
+        <div
+          className="w-56 truncate self-center text-xs text-stone-600"
+          title={(p.merchandisers ?? []).map((item) => item.name).join(', ')}
+        >
+          {(p.merchandisers ?? []).map((item) => item.name).join(', ') || '—'}
+        </div>
         <div className="w-32">
           <label className="flex items-center gap-2 text-xs text-stone-600">
             <input
@@ -585,7 +643,7 @@ function EditRow({
             Active
           </label>
         </div>
-        <div className="w-32 flex justify-end gap-2">
+        <div className="w-56 flex justify-end gap-2">
           <button
             type="button"
             onClick={onSave}

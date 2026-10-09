@@ -11,6 +11,7 @@ export interface Merchandiser {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  productCategories?: Array<{ id: string; code: string; name: string }>;
 }
 
 type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
@@ -89,7 +90,10 @@ export default function MerchandisersEditor({ initial }: { initial: Merchandiser
         return;
       }
       const created = (await response.json()) as Merchandiser;
-      setList((current) => [created, ...current]);
+      setList((current) => [
+        { ...created, productCategories: [] },
+        ...current,
+      ]);
       setDraft(EMPTY_FORM);
       setCreateOk(true);
       window.setTimeout(() => setCreateOk(false), 2000);
@@ -136,7 +140,16 @@ export default function MerchandisersEditor({ initial }: { initial: Merchandiser
         return;
       }
       const updated = (await response.json()) as Merchandiser;
-      setList((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      setList((current) =>
+        current.map((row) =>
+          row.id === updated.id
+            ? {
+                ...updated,
+                productCategories: row.productCategories ?? [],
+              }
+            : row,
+        ),
+      );
       setEditingId(null);
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'Unable to update merchandiser.');
@@ -158,7 +171,16 @@ export default function MerchandisersEditor({ initial }: { initial: Merchandiser
         return;
       }
       const updated = (await response.json()) as Merchandiser;
-      setList((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      setList((current) =>
+        current.map((row) =>
+          row.id === updated.id
+            ? {
+                ...updated,
+                productCategories: row.productCategories ?? [],
+              }
+            : row,
+        ),
+      );
     } finally {
       setTogglingId(null);
     }
@@ -248,9 +270,9 @@ export default function MerchandisersEditor({ initial }: { initial: Merchandiser
 
       <section className="overflow-hidden rounded-xl border border-stone-200 bg-white">
         <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_110px_120px_150px] gap-3 border-b bg-stone-50 px-4 py-3 text-xs font-semibold text-stone-600">
-              <span>Name</span><span>Email / description</span><span>Created</span><span>Status</span><span className="text-right">Actions</span>
+          <div className="min-w-[1000px]">
+            <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_minmax(180px,1fr)_110px_120px_150px] gap-3 border-b bg-stone-50 px-4 py-3 text-xs font-semibold text-stone-600">
+              <span>Name</span><span>Email / description</span><span>Product categories</span><span>Created</span><span>Status</span><span className="text-right">Actions</span>
             </div>
             <div className="divide-y divide-stone-100">
               {visible.map((item) => editingId === item.id ? (
@@ -273,9 +295,10 @@ export default function MerchandisersEditor({ initial }: { initial: Merchandiser
 
 function ReadRow({ item, toggling, onEdit, onToggle }: { item: Merchandiser; toggling: boolean; onEdit: () => void; onToggle: () => void }) {
   return (
-    <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_110px_120px_150px] items-center gap-3 px-4 py-3 text-sm">
+    <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_minmax(180px,1fr)_110px_120px_150px] items-center gap-3 px-4 py-3 text-sm">
       <div className="min-w-0 font-medium text-stone-800">{item.name}</div>
       <div className="min-w-0"><a href={`mailto:${item.email}`} className="block truncate text-xs text-qc-deep hover:underline">{item.email}</a><div className="truncate text-xs text-stone-500">{item.description || '—'}</div></div>
+      <div className="truncate text-xs text-stone-600" title={(item.productCategories ?? []).map((category) => category.name).join(', ')}>{(item.productCategories ?? []).map((category) => category.name).join(', ') || '—'}</div>
       <div className="text-xs text-stone-500">{formatDate(item.createdAt)}</div>
       <div><StatusBadge active={item.isActive} /></div>
       <div className="flex justify-end gap-2">
@@ -289,9 +312,10 @@ function ReadRow({ item, toggling, onEdit, onToggle }: { item: Merchandiser; tog
 function EditRow({ item, value, setValue, saving, error, onSave, onCancel }: { item: Merchandiser; value: MerchandiserForm; setValue: (value: MerchandiserForm) => void; saving: boolean; error: string | null; onSave: () => void; onCancel: () => void }) {
   return (
     <div className="border-l-4 border-qc-500 bg-qc-soft/40 px-4 py-3">
-      <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_110px_120px_150px] items-start gap-3 text-sm">
+      <div className="grid grid-cols-[minmax(180px,1fr)_minmax(210px,1fr)_minmax(180px,1fr)_110px_120px_150px] items-start gap-3 text-sm">
         <input value={value.name} onChange={(event) => setValue({ ...value, name: event.target.value })} maxLength={255} placeholder="Name" className="rounded border px-2 py-1.5 text-sm" />
         <div className="space-y-2"><input type="email" value={value.email} onChange={(event) => setValue({ ...value, email: event.target.value })} maxLength={255} placeholder="Email" className="w-full rounded border px-2 py-1.5 text-sm" /><input value={value.description} onChange={(event) => setValue({ ...value, description: event.target.value })} maxLength={2000} placeholder="Description (optional)" className="w-full rounded border px-2 py-1.5 text-sm" /></div>
+        <div className="truncate pt-2 text-xs text-stone-600" title={(item.productCategories ?? []).map((category) => category.name).join(', ')}>{(item.productCategories ?? []).map((category) => category.name).join(', ') || '—'}</div>
         <div className="pt-2 text-xs text-stone-500">{formatDate(item.createdAt)}</div>
         <label className="flex items-center gap-2 pt-2 text-xs text-stone-600"><input type="checkbox" checked={value.isActive} onChange={(event) => setValue({ ...value, isActive: event.target.checked })} /> Active</label>
         <div className="flex justify-end gap-2 pt-1"><button type="button" onClick={onSave} disabled={saving || !value.name.trim() || !value.email.trim()} className="rounded bg-qc-600 px-2 py-1 text-xs text-white hover:bg-qc-700 disabled:opacity-40">{saving ? 'Saving…' : 'Save'}</button><button type="button" onClick={onCancel} disabled={saving} className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50">Cancel</button></div>

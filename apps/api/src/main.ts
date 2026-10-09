@@ -29,6 +29,7 @@ async function bootstrap() {
     .setDescription('Enterprise Quality Assurance & Inspection Platform API')
     .setVersion('1.0')
     .addBearerAuth()
+    .addSecurityRequirements('bearer')
     .build();
   const document = SwaggerModule.createDocument(app, swagger);
   SwaggerModule.setup('docs', app, document);

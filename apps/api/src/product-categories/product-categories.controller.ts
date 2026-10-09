@@ -13,6 +13,7 @@ import {
 import { IsString, MinLength } from 'class-validator';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth/guards/roles.guard';
 import {
+  AssignCategoryMerchandisersDto,
   CreateProductCategoryDto,
   UpdateProductCategoryDto,
 } from './dto/product-category.dto';
@@ -39,6 +40,12 @@ export class ProductCategoriesController {
     return this.service.getById(id);
   }
 
+  @Get(':id/merchandisers')
+  @Roles('admin')
+  listMerchandisers(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.service.listMerchandisers(id);
+  }
+
   @Post()
   @Roles('admin')
   create(@Body() dto: CreateProductCategoryDto) {
@@ -52,6 +59,15 @@ export class ProductCategoriesController {
     @Body() dto: UpdateProductCategoryDto,
   ) {
     return this.service.update(id, dto);
+  }
+
+  @Put(':id/merchandisers')
+  @Roles('admin')
+  assignMerchandisers(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AssignCategoryMerchandisersDto,
+  ) {
+    return this.service.assignMerchandisers(id, dto.merchandiserIds);
   }
 
   @Delete(':id')

@@ -21,13 +21,22 @@ export class MerchandisersService {
     private readonly repo: Repository<MerchandiserEntity>,
   ) {}
 
-  list(query: ListMerchandisersQueryDto): Promise<MerchandiserEntity[]> {
-    return this.repo.find({
+  async list(query: ListMerchandisersQueryDto) {
+    const merchandisers = await this.repo.find({
       where:
         query.isActive === undefined
           ? {}
           : { isActive: query.isActive },
+      relations: {
+        categoryMerchandisers: { category: true },
+      },
       order: { createdAt: 'DESC' },
+    });
+
+    return merchandisers.map((merchandiser) => {
+      const productCategories = merchandiser.productCategories;
+      const { categoryMerchandisers: _junctionRows, ...fields } = merchandiser;
+      return { ...fields, productCategories };
     });
   }
 

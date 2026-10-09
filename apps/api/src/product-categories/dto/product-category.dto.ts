@@ -1,7 +1,11 @@
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   MinLength,
@@ -62,4 +66,12 @@ export class UpdateProductCategoryDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+}
+
+export class AssignCategoryMerchandisersDto {
+  @IsArray()
+  @ArrayMaxSize(1000)
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  merchandiserIds!: string[];
 }

@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -38,6 +39,7 @@ import {
   SupplierEntity,
 } from './database/entities';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 
 @Module({
   imports: [
@@ -84,7 +86,10 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
     ReportsModule,
     AqlMasterModule,
   ],
-  providers: [MastersSeedService],
+  providers: [
+    MastersSeedService,
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

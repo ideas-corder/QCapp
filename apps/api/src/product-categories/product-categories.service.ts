@@ -1,10 +1,13 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import { CategoryMerchandiser } from '../database/entities/category-merchandiser.entity';
+import { MerchandiserEntity } from '../database/entities/merchandiser.entity';
 import { ProductCategoryEntity } from '../database/entities/product-category.entity';
 import {
   CreateProductCategoryDto,
@@ -19,13 +22,24 @@ export class ProductCategoriesService {
   constructor(
     @InjectRepository(ProductCategoryEntity)
     private readonly repo: Repository<ProductCategoryEntity>,
+    @InjectRepository(CategoryMerchandiser)
+    private readonly categoryMerchandiserRepo: Repository<CategoryMerchandiser>,
     private readonly dataSource: DataSource,
   ) {}
 
-  list(opts?: { activeOnly?: boolean }) {
-    return this.repo.find({
+  async list(opts?: { activeOnly?: boolean }) {
+    const categories = await this.repo.find({
       where: opts?.activeOnly ? { isActive: true } : {},
+      relations: {
+        categoryMerchandisers: { merchandiser: true },
+      },
       order: { code: 'ASC' },
+    });
+
+    return categories.map((category) => {
+      const merchandisers = category.merchandisers;
+      const { categoryMerchandisers: _junctionRows, ...fields } = category;
+      return { ...fields, merchandisers };
     });
   }
 
@@ -39,6 +53,76 @@ export class ProductCategoriesService {
     return this.repo.findOne({
       where: { code: normalizeCode(code), isActive: true },
     });
+  }
+
+  async listMerchandisers(categoryId: string): Promise<MerchandiserEntity[]> {
+    await this.getById(categoryId);
+    const assignments = await this.categoryMerchandiserRepo.find({
+      where: { categoryId },
+      relations: { merchandiser: true },
+    });
+
+    return assignments
+      .map((assignment) => assignment.merchandiser)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async assignMerchandisers(
+    categoryId: string,
+    merchandiserIds: string[],
+  ): Promise<MerchandiserEntity[]> {
+    const uniqueIds = [...new Set(merchandiserIds)];
+    await this.dataSource.transaction(async (manager) => {
+      const categoryRepo = manager.getRepository(ProductCategoryEntity);
+      const category = await categoryRepo.findOne({
+        select: { id: true },
+        where: { id: categoryId },
+      });
+      if (!category) throw new NotFoundException('Product category not found');
+
+      if (uniqueIds.length > 0) {
+        const merchandisers = await manager
+          .getRepository(MerchandiserEntity)
+          .find({
+            select: { id: true },
+            where: { id: In(uniqueIds) },
+          });
+        const existingIds = new Set(merchandisers.map((item) => item.id));
+        const missingIds = uniqueIds.filter((id) => !existingIds.has(id));
+        if (missingIds.length > 0) {
+          throw new BadRequestException(
+            `Unknown merchandiser id${missingIds.length === 1 ? '' : 's'}: ${missingIds.join(', ')}`,
+          );
+        }
+      }
+
+      const assignmentRepo = manager.getRepository(CategoryMerchandiser);
+      const current = await assignmentRepo.find({
+        select: { merchandiserId: true },
+        where: { categoryId },
+      });
+      const currentIds = new Set(current.map((item) => item.merchandiserId));
+      const requestedIds = new Set(uniqueIds);
+      const toAdd = uniqueIds.filter((id) => !currentIds.has(id));
+      const toRemove = [...currentIds].filter((id) => !requestedIds.has(id));
+
+      if (toRemove.length > 0) {
+        await assignmentRepo.delete({
+          categoryId,
+          merchandiserId: In(toRemove),
+        });
+      }
+      if (toAdd.length > 0) {
+        await assignmentRepo.insert(
+          toAdd.map((merchandiserId) => ({
+            categoryId,
+            merchandiserId,
+          })),
+        );
+      }
+    });
+
+    return this.listMerchandisers(categoryId);
   }
 
   async create(

@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { CategoryMerchandiser } from './category-merchandiser.entity';
+import { ProductCategoryEntity } from './product-category.entity';
 
 /** Admin-managed merchandiser master data. */
 @Entity({ name: 'merchandisers' })
@@ -34,6 +35,18 @@ export class MerchandiserEntity {
     (categoryMerchandiser) => categoryMerchandiser.merchandiser,
   )
   categoryMerchandisers!: CategoryMerchandiser[];
+
+  /**
+   * Convenience view over the explicit junction rows. Callers must load
+   * `categoryMerchandisers.category` when querying the merchandiser.
+   */
+  get productCategories(): ProductCategoryEntity[] {
+    return (this.categoryMerchandisers ?? [])
+      .map((association) => association.category)
+      .filter(
+        (category): category is ProductCategoryEntity => !!category,
+      );
+  }
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

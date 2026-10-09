@@ -46,4 +46,5 @@ export class MerchandisersController {
   ) {
     return this.service.update(id, dto);
   }
+
 }
