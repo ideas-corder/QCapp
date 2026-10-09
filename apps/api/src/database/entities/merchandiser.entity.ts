@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CategoryMerchandiser } from './category-merchandiser.entity';
 import { ProductCategoryEntity } from './product-category.entity';
+import { InspectionEntity } from './inspection.entity';
 
 /** Admin-managed merchandiser master data. */
 @Entity({ name: 'merchandisers' })
@@ -35,6 +36,9 @@ export class MerchandiserEntity {
     (categoryMerchandiser) => categoryMerchandiser.merchandiser,
   )
   categoryMerchandisers!: CategoryMerchandiser[];
+
+  @OneToMany(() => InspectionEntity, (inspection) => inspection.merchandiser)
+  inspections!: InspectionEntity[];
 
   /**
    * Convenience view over the explicit junction rows. Callers must load

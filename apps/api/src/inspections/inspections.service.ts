@@ -14,6 +14,8 @@ import { InspectionEntity } from '../database/entities/inspection.entity';
 import { InspectionTypeEntity } from '../database/entities/inspection-type.entity';
 import { InspectorEntity } from '../database/entities/inspector.entity';
 import { ProductCategoryEntity } from '../database/entities/product-category.entity';
+import { MerchandiserEntity } from '../database/entities/merchandiser.entity';
+import { CategoryMerchandiser } from '../database/entities/category-merchandiser.entity';
 import { DefectItemEntity } from '../database/entities/defect-item.entity';
 import { PhotoEntity } from '../database/entities/photo.entity';
 import { AqlMasterEntity } from '../database/entities/aql-master.entity';
@@ -86,6 +88,10 @@ export class InspectionsService {
     private readonly inspectionTypeRepo: Repository<InspectionTypeEntity>,
     @InjectRepository(ProductCategoryEntity)
     private readonly productCategoryRepo: Repository<ProductCategoryEntity>,
+    @InjectRepository(MerchandiserEntity)
+    private readonly merchandiserRepo: Repository<MerchandiserEntity>,
+    @InjectRepository(CategoryMerchandiser)
+    private readonly categoryMerchandiserRepo: Repository<CategoryMerchandiser>,
     @InjectRepository(InspectorEntity)
     private readonly inspectorRepo: Repository<InspectorEntity>,
     @InjectRepository(AqlMasterEntity)
@@ -133,20 +139,34 @@ export class InspectionsService {
     }
     const inspectionType = typeRow.code;
 
-    // Optional product-category link. If provided it must reference an
-    // active row in the new master; if absent we just leave the FK null
-    // so legacy / backfilled data isn't forced through.
-    let productCategoryId: string | null = null;
-    if (dto.productCategoryId) {
-      const pc = await this.productCategoryRepo.findOne({
-        where: { id: dto.productCategoryId, isActive: true },
-      });
-      if (!pc) {
-        throw new BadRequestException(
-          `productCategoryId "${dto.productCategoryId}" is not an active product category`,
-        );
-      }
-      productCategoryId = pc.id;
+    const productCategory = await this.productCategoryRepo.findOne({
+      where: { id: dto.productCategoryId, isActive: true },
+    });
+    if (!productCategory) {
+      throw new BadRequestException(
+        `productCategoryId "${dto.productCategoryId}" is not an active product category`,
+      );
+    }
+
+    const merchandiser = await this.merchandiserRepo.findOne({
+      where: { id: dto.merchandiserId, isActive: true },
+    });
+    if (!merchandiser) {
+      throw new BadRequestException(
+        `merchandiserId "${dto.merchandiserId}" is not an active merchandiser`,
+      );
+    }
+
+    const categoryAssignment = await this.categoryMerchandiserRepo.findOne({
+      where: {
+        categoryId: productCategory.id,
+        merchandiserId: merchandiser.id,
+      },
+    });
+    if (!categoryAssignment) {
+      throw new BadRequestException(
+        `Merchandiser "${merchandiser.name}" is not assigned to product category "${productCategory.name}"`,
+      );
     }
 
     // Optional inspector master link. Validated against the new
@@ -191,7 +211,8 @@ export class InspectionsService {
       submissionUuid: dto.submissionUuid,
       inspectionNumber,
       categoryId: dto.categoryId,
-      productCategoryId,
+      productCategoryId: productCategory.id,
+      merchandiserId: merchandiser.id,
       supplierId: dto.supplierId,
       inspectorMasterId,
       isCustomSupplier: dto.isCustomSupplier ?? false,
@@ -202,7 +223,7 @@ export class InspectionsService {
       color: dto.color ?? '',
       inspectionDate: dto.inspectionDate ?? null,
       deliveryDate: dto.deliveryDate ?? null,
-      merchandiserName: dto.merchandiserName ?? '',
+      merchandiserName: merchandiser.name,
       orderQuantity: String(dto.orderQuantity),
       presentedQuantity: String(dto.presentedQuantity),
       inspectedQuantity: String(dto.inspectedQuantity),
@@ -390,6 +411,7 @@ export class InspectionsService {
         'category',
         'supplier',
         'productCategory',
+        'merchandiser',
         'aqlMaster',
         'inspector',
         'inspectorMaster',
@@ -436,6 +458,7 @@ export class InspectionsService {
       .leftJoinAndSelect('i.inspector', 'inspector')
       // Extra joins for new columns we might sort or filter by.
       .leftJoinAndSelect('i.productCategory', 'productCategory')
+      .leftJoinAndSelect('i.merchandiser', 'merchandiser')
       .leftJoinAndSelect('i.aqlMaster', 'aqlMaster');
 
     // ─── row scoping ──────────────────────────────────────────────

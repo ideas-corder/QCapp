@@ -12,6 +12,7 @@ import {
 import { CategoryEntity } from './category.entity';
 import { InspectorEntity } from './inspector.entity';
 import { ProductCategoryEntity } from './product-category.entity';
+import { MerchandiserEntity } from './merchandiser.entity';
 import { SupplierEntity } from './supplier.entity';
 import { UserEntity } from './user.entity';
 import { DefectItemEntity } from './defect-item.entity';
@@ -169,6 +170,17 @@ export class InspectionEntity {
 
   @Column({ type: 'uuid', nullable: true, name: 'product_category_id' })
   productCategoryId!: string | null;
+
+  @ManyToOne(
+    () => MerchandiserEntity,
+    (merchandiser) => merchandiser.inspections,
+    { onDelete: 'RESTRICT', eager: true },
+  )
+  @JoinColumn({ name: 'merchandiser_id' })
+  merchandiser!: MerchandiserEntity;
+
+  @Column({ type: 'uuid', name: 'merchandiser_id' })
+  merchandiserId!: string;
 
   @ManyToOne(() => SupplierEntity, { onDelete: 'RESTRICT', eager: true })
   @JoinColumn({ name: 'supplier_id' })
@@ -338,6 +350,8 @@ export class InspectionEntity {
   @Column({ type: 'date', nullable: true, name: 'delivery_date' })
   deliveryDate!: string | null;
 
+  // Historical display-name snapshot retained for existing reports and
+  // exports. New inspections derive it from the required merchandiser master.
   @Column({ type: 'varchar', length: 255, default: '', name: 'merchandiser_name' })
   merchandiserName!: string;
 

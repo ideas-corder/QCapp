@@ -318,9 +318,11 @@ export class CreateInspectionDto {
   @IsOptional() @IsUUID()
   categoryId?: string | null;
 
-  @IsOptional()
   @IsUUID()
-  productCategoryId?: string;
+  productCategoryId!: string;
+
+  @IsUUID()
+  merchandiserId!: string;
 
   @IsUUID()
   supplierId!: string;
@@ -354,10 +356,6 @@ export class CreateInspectionDto {
   @IsOptional()
   @IsString()
   deliveryDate?: string;
-
-  @IsOptional() @IsString()
-  @MaxLength(255)
-  merchandiserName?: string;
 
   @IsNumber()
   @Min(0)

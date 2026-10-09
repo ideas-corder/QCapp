@@ -9,6 +9,14 @@ interface ProductCategory {
   name: string;
   description: string | null;
   isActive: boolean;
+  merchandisers: Merchandiser[];
+}
+
+interface Merchandiser {
+  id: string;
+  name: string;
+  email: string;
+  isActive: boolean;
 }
 
 interface Category {

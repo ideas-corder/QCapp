@@ -8,6 +8,8 @@ import { PhotoEntity } from '../database/entities/photo.entity';
 import { InspectionTypeEntity } from '../database/entities/inspection-type.entity';
 import { InspectorEntity } from '../database/entities/inspector.entity';
 import { ProductCategoryEntity } from '../database/entities/product-category.entity';
+import { MerchandiserEntity } from '../database/entities/merchandiser.entity';
+import { CategoryMerchandiser } from '../database/entities/category-merchandiser.entity';
 import { AqlMasterEntity } from '../database/entities/aql-master.entity';
 // RulesModule was removed on 2026-09-03 — QC Rules feature retired.
 // InspectionsService no longer injects RulesEngine and no longer calls
@@ -23,6 +25,8 @@ import { ReportsModule } from '../reports/reports.module';
       PhotoEntity,
       InspectionTypeEntity,
       ProductCategoryEntity,
+      MerchandiserEntity,
+      CategoryMerchandiser,
       InspectorEntity,
       AqlMasterEntity,
     ]),
