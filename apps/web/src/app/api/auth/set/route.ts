@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  ACCESS_COOKIE_MAX_AGE_SECONDS,
+  REFRESH_COOKIE_MAX_AGE_SECONDS,
+} from '@/lib/config';
 
 export const runtime = 'nodejs';
 
@@ -14,13 +18,13 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
   });
   res.cookies.set('qc_refresh', refresh, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
   });
   return res;
 }

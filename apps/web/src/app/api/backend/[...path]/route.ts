@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_BASE } from '@/lib/config';
+import {
+  ACCESS_COOKIE_MAX_AGE_SECONDS,
+  API_BASE,
+  REFRESH_COOKIE_MAX_AGE_SECONDS,
+} from '@/lib/config';
 import { refreshAccessTokenOnce } from '@/lib/refresh';
 
 /**
@@ -108,13 +112,13 @@ async function forward(req: NextRequest, ctx: { params: { path: string[] } }) {
         if (fresh.accessToken) {
           respHeaders.append(
             'Set-Cookie',
-            `qc_access=${encodeURIComponent(fresh.accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+            `qc_access=${encodeURIComponent(fresh.accessToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${ACCESS_COOKIE_MAX_AGE_SECONDS}`,
           );
         }
         if (fresh.refreshToken) {
           respHeaders.append(
             'Set-Cookie',
-            `qc_refresh=${encodeURIComponent(fresh.refreshToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+            `qc_refresh=${encodeURIComponent(fresh.refreshToken)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${REFRESH_COOKIE_MAX_AGE_SECONDS}`,
           );
         }
       } else {

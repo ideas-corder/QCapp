@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { refreshAccessTokenOnce } from '@/lib/refresh';
+import {
+  ACCESS_COOKIE_MAX_AGE_SECONDS,
+  REFRESH_COOKIE_MAX_AGE_SECONDS,
+} from '@/lib/config';
 
 export const runtime = 'nodejs';
 
@@ -49,11 +53,16 @@ export async function GET(req: NextRequest) {
       httpOnly: true,
       sameSite: 'lax' as const,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
     };
-    response.cookies.set('qc_access', tokens.accessToken, cookieOptions);
+    response.cookies.set('qc_access', tokens.accessToken, {
+      ...cookieOptions,
+      maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
+    });
     if (tokens.refreshToken) {
-      response.cookies.set('qc_refresh', tokens.refreshToken, cookieOptions);
+      response.cookies.set('qc_refresh', tokens.refreshToken, {
+        ...cookieOptions,
+        maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
+      });
     }
     response.cookies.set('qc_refreshed', '1', {
       httpOnly: true,

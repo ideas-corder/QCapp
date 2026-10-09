@@ -35,6 +35,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_DATABASE}
       API_PORT: ${API_PORT}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-12h}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
     depends_on:
       - database
     restart: always
@@ -56,6 +58,8 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       API_INTERNAL_URL: ${API_INTERNAL_URL}
+      QC_ACCESS_COOKIE_MAX_AGE_SECONDS: ${QC_ACCESS_COOKIE_MAX_AGE_SECONDS:-43200}
+      QC_REFRESH_COOKIE_MAX_AGE_SECONDS: ${QC_REFRESH_COOKIE_MAX_AGE_SECONDS:-2592000}
     depends_on:
       - backend
     restart: always
