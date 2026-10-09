@@ -225,11 +225,11 @@ export class AuthService {
     };
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: process.env.JWT_ACCESS_TTL || '15m',
+      expiresIn: process.env.JWT_ACCESS_TTL || '12h',
     });
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_TTL || '7d',
+      expiresIn: process.env.JWT_REFRESH_TTL || '30d',
     });
     await this.userRepo.update(user.id, { lastLoginAt: new Date() });
     return {

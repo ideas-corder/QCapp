@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { refreshAccessTokenOnce } from '@/lib/refresh';
+import {
+  ACCESS_COOKIE_MAX_AGE_SECONDS,
+  REFRESH_COOKIE_MAX_AGE_SECONDS,
+} from '@/lib/config';
 
 export const runtime = 'nodejs';
 
-const API_BASE =
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:3002';
-
 function safeReturnPath(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  if (
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.startsWith('/api/auth/refresh')
+  ) {
+    return '/';
+  }
   return value;
 }
 
@@ -31,14 +38,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-      cache: 'no-store',
-    });
-
-    if (!upstream.ok) {
+    const tokens = await refreshAccessTokenOnce(refreshToken);
+    if (!tokens.accessToken) {
       const response = NextResponse.redirect(
         new URL('/login?expired=1', req.url),
         303,
@@ -47,23 +48,28 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
-    const tokens = (await upstream.json()) as {
-      accessToken?: string;
-      refreshToken?: string;
-    };
-    if (!tokens.accessToken) throw new Error('Refresh response has no access token');
-
     const response = NextResponse.redirect(new URL(returnTo, req.url), 303);
     const cookieOptions = {
       httpOnly: true,
       sameSite: 'lax' as const,
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
     };
-    response.cookies.set('qc_access', tokens.accessToken, cookieOptions);
+    response.cookies.set('qc_access', tokens.accessToken, {
+      ...cookieOptions,
+      maxAge: ACCESS_COOKIE_MAX_AGE_SECONDS,
+    });
     if (tokens.refreshToken) {
-      response.cookies.set('qc_refresh', tokens.refreshToken, cookieOptions);
+      response.cookies.set('qc_refresh', tokens.refreshToken, {
+        ...cookieOptions,
+        maxAge: REFRESH_COOKIE_MAX_AGE_SECONDS,
+      });
     }
+    response.cookies.set('qc_refreshed', '1', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 15,
+    });
     return response;
   } catch {
     const response = NextResponse.redirect(

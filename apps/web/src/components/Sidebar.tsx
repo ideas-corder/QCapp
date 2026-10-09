@@ -25,10 +25,9 @@ import type { CallerIdentity, UserRole } from '@/lib/auth';
  *                            appropriate for an inspector whose view of
  *                            the platform is strictly their own work.
  *
- * The caller identity is decoded server-side in the root layout from
- * the `qc_access` JWT cookie and passed in as a prop. We don't verify
- * the signature here (the API does on every request) — this is just
- * used to render the right navigation.
+ * Middleware obtains the caller identity from the API's `/auth/me` endpoint
+ * and the protected layout passes it here as a prop. The same role policy is
+ * enforced by middleware for deep links and by API guards for data access.
  */
 type NavLink = { href: string; label: string; icon?: React.ReactNode };
 type NavGroup = { label: string; links: NavLink[] };

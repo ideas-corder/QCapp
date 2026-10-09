@@ -1,11 +1,7 @@
 // Server-only API utilities. Must NOT be imported from client components.
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
-const API =
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:3002';
+import { API_BASE } from '@/lib/config';
 
 export class ApiError extends Error {
   constructor(
@@ -15,6 +11,17 @@ export class ApiError extends Error {
     super(`API ${status}: ${body}`);
     this.name = 'ApiError';
   }
+}
+
+function safeReturnTo(value: string): string {
+  if (
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.startsWith('/api/auth/refresh')
+  ) {
+    return '/';
+  }
+  return value;
 }
 
 /**
@@ -31,25 +38,27 @@ export async function serverApiRequest(
 ): Promise<Response> {
   const cookieStore = cookies();
   const token = cookieStore.get('qc_access')?.value;
+  const justRefreshed = !!cookieStore.get('qc_refreshed')?.value;
   if (!token) {
-    const safeReturnTo = returnTo.startsWith('/') ? returnTo : '/';
-    if (cookieStore.get('qc_refresh')?.value) {
-      redirect(`/api/auth/refresh?returnTo=${encodeURIComponent(safeReturnTo)}`);
+    const destination = safeReturnTo(returnTo);
+    if (cookieStore.get('qc_refresh')?.value && !justRefreshed) {
+      redirect(`/api/auth/refresh?returnTo=${encodeURIComponent(destination)}`);
     }
     redirect('/login?expired=1');
   }
 
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${token}`);
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers,
     cache: 'no-store',
   });
 
   if (res.status === 401) {
-    const safeReturnTo = returnTo.startsWith('/') ? returnTo : '/';
-    redirect(`/api/auth/refresh?returnTo=${encodeURIComponent(safeReturnTo)}`);
+    if (justRefreshed) return res;
+    const destination = safeReturnTo(returnTo);
+    redirect(`/api/auth/refresh?returnTo=${encodeURIComponent(destination)}`);
   }
 
   return res;
