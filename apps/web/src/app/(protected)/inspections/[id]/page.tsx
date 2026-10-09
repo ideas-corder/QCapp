@@ -139,6 +139,10 @@ export default async function InspectionDetail({
           <Row label="Description" value={i.itemDescription || '—'} />
           <Row label="Category" value={i.category?.name ?? '—'} />
           <Row label="Supplier" value={i.supplier?.name ?? '—'} />
+          <Row
+            label="Merchandiser"
+            value={i.merchandiser?.name || i.merchandiserName || '—'}
+          />
           <Row label="Inspector" value={i.inspectorName || i.inspector?.fullName || '—'} />
         </div>
 

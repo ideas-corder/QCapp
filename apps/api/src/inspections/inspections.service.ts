@@ -401,7 +401,63 @@ export class InspectionsService {
       );
     }
 
+    // Non-blocking email of the detail report to the merchandiser.
+    // The merchandiser was validated above and carries an `email` column;
+    // if it's blank the row would be un-deliverable so we skip silently
+    // and let the admin re-send from the detail page. We schedule the
+    // work via `setImmediate` so the POST returns immediately to the
+    // mobile client — the inspection row is already persisted and the
+    // `email_events` audit trail captures the outcome regardless of when
+    // the SMTP relay accepts the message.
+    const merchandiserEmail = (merchandiser.email ?? '').trim();
+    if (merchandiserEmail) {
+      setImmediate(() => {
+        this.emailDetailReportToMerchandiser(
+          saved.id,
+          merchandiser.name,
+          merchandiserEmail,
+          inspectorId,
+        ).catch((err) => {
+          this.logger.error(
+            `Merchandiser auto-email failed for inspection ${saved.id}: ${(err as Error).message}`,
+          );
+        });
+      });
+    }
+
     return this.getById(saved.id);
+  }
+
+  /**
+   * Build the default "your inspection report is ready" message and
+   * hand it off to the ReportsService, which manages the
+   * `email_events` audit-trail row (QUEUED → SENT/FAILED).
+   *
+   * Surfaced as a private helper so the public `create()` flow stays
+   * a single linear sequence. Failures are swallowed by the caller
+   * (logged via the outer `.catch`) because the inspection itself has
+   * been committed — emailing is a side effect, not a precondition.
+   */
+  private async emailDetailReportToMerchandiser(
+    inspectionId: string,
+    merchandiserName: string,
+    merchandiserEmail: string,
+    sentBy: string | null,
+  ): Promise<void> {
+    const subject = `Inspection report ${inspectionId.slice(0, 8)} — ready for review`;
+    const body =
+      `Hello ${merchandiserName},\n\n` +
+      `A new inspection report has been submitted and the detail PDF is attached for your records.\n\n` +
+      `Please review at your convenience.\n\n` +
+      `— Quality Control`;
+    await this.reportsService.emailDetailReport(inspectionId, {
+      recipients: [
+        { name: merchandiserName, email: merchandiserEmail, role: 'TO' },
+      ],
+      subject,
+      body,
+      sentBy,
+    });
   }
 
   async getById(id: string, caller?: CallerScope): Promise<InspectionEntity> {

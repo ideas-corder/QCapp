@@ -77,6 +77,11 @@ export class ReportsService {
       this.label(doc, 'Item Description', i.itemDescription || '—');
       this.label(doc, 'Category', i.category?.name ?? '—');
       this.label(doc, 'Supplier', i.supplier?.name ?? '—');
+      this.label(
+        doc,
+        'Merchandiser',
+        i.merchandiser?.name || i.merchandiserName || '—',
+      );
       if (i.isCustomSupplier) {
         this.label(doc, 'Custom Supplier', i.customSupplierName || '—');
       }
