@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'node:crypto';
+import { API_BASE } from '@/lib/config';
+import { refreshAccessTokenOnce } from '@/lib/refresh';
 
 /**
  * Catch-all proxy: /api/backend/<anything> → http://API/<anything>
@@ -35,18 +36,6 @@ const HOP_BY_HOP = new Set([
   // header not supported"). Stripping it here lets the upstream fetch succeed.
   'expect',
 ]);
-
-const API_BASE = process.env.API_INTERNAL_URL || 'http://backend:3000';
-
-type RefreshedTokens = {
-  accessToken?: string;
-  refreshToken?: string;
-};
-
-// Concurrent browser requests from one session share the same refresh call.
-// Entries live only for the duration of the request and are always removed in
-// finally, so failures can be retried by a later request.
-const refreshOperations = new Map<string, Promise<RefreshedTokens>>();
 
 function readCookie(header: string | null, name: string): string | undefined {
   if (!header) return undefined;
@@ -85,45 +74,6 @@ function copyResponseHeaders(upstream: Response): Headers {
     out.set(k, v);
   }
   return out;
-}
-
-async function refreshAccessToken(
-  refreshToken: string,
-): Promise<RefreshedTokens> {
-  try {
-    const r = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-      cache: 'no-store',
-    });
-    if (!r.ok) return {};
-    const body = (await r.json()) as {
-      accessToken?: string;
-      refreshToken?: string;
-    };
-    return body ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function refreshSessionKey(refreshToken: string): string {
-  return createHash('sha256').update(refreshToken).digest('hex');
-}
-
-function refreshAccessTokenOnce(refreshToken: string): Promise<RefreshedTokens> {
-  const key = refreshSessionKey(refreshToken);
-  const existing = refreshOperations.get(key);
-  if (existing) return existing;
-
-  const operation = refreshAccessToken(refreshToken).finally(() => {
-    if (refreshOperations.get(key) === operation) {
-      refreshOperations.delete(key);
-    }
-  });
-  refreshOperations.set(key, operation);
-  return operation;
 }
 
 async function forward(req: NextRequest, ctx: { params: { path: string[] } }) {

@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE =
-  process.env.API_INTERNAL_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:3002';
+import { API_BASE } from '@/lib/config';
 
 type UserRole = 'admin' | 'inspector' | 'viewer';
 
@@ -69,29 +65,53 @@ function returnToPath(req: NextRequest): string {
   return `${req.nextUrl.pathname}${query ? `?${query}` : ''}`;
 }
 
+function forwardHeaders(req: NextRequest, returnTo: string): Headers {
+  const headers = new Headers(req.headers);
+  // Never trust a caller identity supplied by the browser. Only middleware's
+  // authenticated branch may add this internal header.
+  headers.delete('x-qc-caller');
+  headers.set('x-qc-return-to', returnTo);
+  return headers;
+}
+
 function redirectToRefresh(req: NextRequest, returnTo: string): NextResponse {
   const url = new URL('/api/auth/refresh', req.url);
   url.searchParams.set('returnTo', returnTo);
   return NextResponse.redirect(url);
 }
 
-function redirectToLogin(req: NextRequest): NextResponse {
+function redirectToLogin(
+  req: NextRequest,
+  clearSession = false,
+): NextResponse {
   const url = new URL('/login', req.url);
   url.searchParams.set('expired', '1');
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  if (clearSession) {
+    response.cookies.set('qc_access', '', { path: '/', maxAge: 0 });
+    response.cookies.set('qc_refresh', '', { path: '/', maxAge: 0 });
+    response.cookies.set('qc_refreshed', '', { path: '/', maxAge: 0 });
+  }
+  return response;
 }
 
 function parseCaller(value: unknown): CallerIdentity | null {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, unknown>;
-  const role = candidate.role;
+  const role = String(candidate.role).toLowerCase();
   if (role !== 'admin' && role !== 'inspector' && role !== 'viewer') {
     return null;
   }
-  if (typeof candidate.userId !== 'string') return null;
+  const userId =
+    typeof candidate.userId === 'string'
+      ? candidate.userId
+      : typeof candidate.sub === 'string'
+        ? candidate.sub
+        : null;
+  if (!userId) return null;
 
   return {
-    userId: candidate.userId,
+    userId,
     email: typeof candidate.email === 'string' ? candidate.email : '',
     role,
     isSuperAdmin: candidate.isSuperAdmin === true,
@@ -132,43 +152,48 @@ export async function middleware(req: NextRequest) {
   const returnTo = returnToPath(req);
 
   if (isPublicAsset(req.nextUrl.pathname)) {
-    const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-qc-return-to', returnTo);
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return NextResponse.next({
+      request: { headers: forwardHeaders(req, returnTo) },
+    });
   }
 
   const entryPage = isEntryPage(req.nextUrl.pathname);
   const accessToken = req.cookies.get('qc_access')?.value;
   const refreshToken = req.cookies.get('qc_refresh')?.value;
+  const justRefreshed = req.cookies.get('qc_refreshed')?.value === '1';
 
   if (!accessToken) {
     if (entryPage) {
-      if (req.nextUrl.pathname === '/' && refreshToken) {
+      if (req.nextUrl.pathname === '/' && refreshToken && !justRefreshed) {
         return redirectToRefresh(req, '/');
       }
-      if (req.nextUrl.pathname === '/') return redirectToLogin(req);
+      if (req.nextUrl.pathname === '/') {
+        return redirectToLogin(req, justRefreshed);
+      }
 
-      const requestHeaders = new Headers(req.headers);
-      requestHeaders.set('x-qc-return-to', returnTo);
-      return NextResponse.next({ request: { headers: requestHeaders } });
+      return NextResponse.next({
+        request: { headers: forwardHeaders(req, returnTo) },
+      });
     }
 
-    return refreshToken
+    return refreshToken && !justRefreshed
       ? redirectToRefresh(req, returnTo)
-      : redirectToLogin(req);
+      : redirectToLogin(req, justRefreshed);
   }
 
   const auth = await getCurrentUser(accessToken);
   if (auth.kind === 'unauthorized') {
+    if (justRefreshed) return redirectToLogin(req, true);
+
     if (entryPage && !refreshToken) {
       if (req.nextUrl.pathname === '/') return redirectToLogin(req);
 
-      const requestHeaders = new Headers(req.headers);
-      requestHeaders.set('x-qc-return-to', returnTo);
-      return NextResponse.next({ request: { headers: requestHeaders } });
+      return NextResponse.next({
+        request: { headers: forwardHeaders(req, returnTo) },
+      });
     }
 
-    return refreshToken
+    return refreshToken && !justRefreshed
       ? redirectToRefresh(req, returnTo)
       : redirectToLogin(req);
   }
@@ -178,6 +203,7 @@ export async function middleware(req: NextRequest) {
   if (auth.kind === 'unavailable') {
     return new NextResponse('Authentication service is unavailable.', {
       status: 503,
+      headers: { 'Cache-Control': 'no-store' },
     });
   }
 
@@ -189,8 +215,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(landingPage(auth.caller), req.url));
   }
 
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set('x-qc-return-to', returnTo);
+  const requestHeaders = forwardHeaders(req, returnTo);
   // Reuse the verified identity in the protected layout instead of making a
   // second /auth/me request during the same navigation.
   requestHeaders.set(
