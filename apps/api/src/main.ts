@@ -9,7 +9,7 @@ dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: process.env.NODE_ENV === 'development' ? ['log', 'warn', 'error'] : ['error'],
+    logger: ['log', 'warn', 'error'],
   });
   app.enableCors({
     origin: true,
