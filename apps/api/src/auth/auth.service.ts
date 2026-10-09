@@ -18,12 +18,9 @@ export interface JwtPayload {
   role: UserRole;
   mfaVerified: boolean;
   /**
-   * Snapshot of `users.is_super_admin` taken at token-issue time.
-   * JWTs are short-lived (15m by default) so the staleness window
-   * is bounded; if you promote / demote a super-admin, their next
-   * login will reflect it. Mid-session promotion is intentionally
-   * not supported — super-admin changes should be rare and happen
-   * through the dedicated Users master.
+   * Snapshot included in the token for compatibility. JwtStrategy resolves
+   * the current user row on every guarded request and uses the database value
+   * when it builds request.user.
    */
   isSuperAdmin: boolean;
 }
@@ -66,11 +63,10 @@ export class AuthService {
     // and `admin@qc.local` both resolve to the same row.
     const normalised = email.trim().toLowerCase();
     const user = await this.userRepo.findOne({ where: { email: normalised } });
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials');
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
+    if (!user.isActive) throw new UnauthorizedException('User inactive');
     return user;
   }
 
@@ -134,7 +130,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid MFA session');
     }
     const user = await this.userRepo.findOne({ where: { id: payload.sub } });
-    if (!user || !user.mfaSecret) {
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User inactive');
+    }
+    if (!user.mfaSecret) {
       throw new UnauthorizedException('MFA not configured for this user');
     }
     const ok = authenticator.check(totpCode, user.mfaSecret);

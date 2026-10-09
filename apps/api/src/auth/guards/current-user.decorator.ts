@@ -6,10 +6,9 @@ export interface AuthUser {
   role: 'admin' | 'inspector' | 'viewer';
   mfaVerified: boolean;
   /**
-   * Mirrors `users.is_super_admin`. Lets request handlers decide
-   * "is this caller the bootstrap owner?" without re-querying the
-   * user row. Carried on every authenticated request because the
-   * JWT lifetime is short and the flag rarely changes.
+   * Current `users.is_super_admin` value loaded by JwtStrategy. Lets request
+   * handlers decide "is this caller the bootstrap owner?" without another
+   * query in each handler.
    */
   isSuperAdmin: boolean;
 }
